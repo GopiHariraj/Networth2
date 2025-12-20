@@ -1,0 +1,359 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================
+// USERS & AUTH
+// ============================================
+
+enum Role {
+  SUPER_ADMIN
+  USER
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  password      String?
+  role          Role     @default(USER)
+  firstName     String
+  lastName      String?
+  currency      String   @default("AED") // AED, INR
+  refreshToken  String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  bankAccounts  BankAccount[]
+  goldAssets    GoldAsset[]
+  stockAssets   StockAsset[]
+  properties    Property[]
+  loans         Loan[]
+  transactions  Transaction[]
+  goals         Goal[]
+  snapshots     NetWorthSnapshot[]
+  categories    Category[]
+  auditLogs     AuditLog[]
+  budgets       Budget[]
+  expenses      Expense[]
+  expenseCategories ExpenseCategory[]
+
+  @@map("users")
+}
+
+// ============================================
+// ASSETS
+// ============================================
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  accountName   String
+  bankName      String
+  accountNumber String?  // Optional, encrypted if stored
+  accountType   String   // Savings, Current, Fixed Deposit
+  balance       Decimal  @db.Decimal(15, 2)
+  currency      String   @default("AED")
+  isActive      Boolean  @default(true)
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@index([userId])
+  @@map("bank_accounts")
+}
+
+model GoldAsset {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String   // "Gold Coins", "Gold Bar 100g"
+  weightGrams   Decimal  @db.Decimal(10, 3)
+  purchasePrice Decimal  @db.Decimal(15, 2)
+  purchaseDate  DateTime?
+  currentValue  Decimal  @db.Decimal(15, 2) // Updated manually or via API
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("gold_assets")
+}
+
+model StockAsset {
+  id            String   @id @default(uuid())
+  userId        String
+  symbol        String   // AAPL, RELIANCE.NS
+  name          String   // Apple Inc., Reliance Industries
+  exchange      String   // NASDAQ, NSE
+  quantity      Decimal  @db.Decimal(15, 4)
+  avgPrice      Decimal  @db.Decimal(15, 2)
+  currentPrice  Decimal  @db.Decimal(15, 2)
+  broker        String?
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("stock_assets")
+}
+
+model Property {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String   // "Dubai Apartment", "Bangalore House"
+  propertyType    String   // Residential, Commercial, Land
+  location        String
+  purchasePrice   Decimal  @db.Decimal(15, 2)
+  purchaseDate    DateTime?
+  currentValue    Decimal  @db.Decimal(15, 2)
+  linkedLoanId    String?  // Link to mortgage loan
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("properties")
+}
+
+// ============================================
+// LIABILITIES
+// ============================================
+
+model Loan {
+  id              String   @id @default(uuid())
+  userId          String
+  loanType        String   // Home, Car, Personal, Credit Card
+  lenderName      String
+  principal       Decimal  @db.Decimal(15, 2)
+  interestRate    Decimal  @db.Decimal(5, 2) // 3.5%, 8.5%
+  emiAmount       Decimal  @db.Decimal(15, 2)
+  outstanding     Decimal  @db.Decimal(15, 2)
+  startDate       DateTime
+  endDate         DateTime
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("loans")
+}
+
+// ============================================
+// TRANSACTIONS
+// ============================================
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String
+  accountId     String?  // For bank transactions
+  type          String   // Income, Expense, Transfer
+  amount        Decimal  @db.Decimal(15, 2)
+  categoryId    String?
+  description   String?
+  date          DateTime @default(now())
+  notes         String?  @db.Text
+  attachmentUrl String?  // Future: receipt images
+  source        String?  // "SMS", "MANUAL"
+  merchant      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account       BankAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([categoryId])
+  @@map("transactions")
+}
+
+model Category {
+  id            String        @id @default(uuid())
+  userId        String
+  name          String
+  type          CategoryType  @default(EXPENSE)
+  icon          String?
+  color         String?
+  isDefault     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  budgets       Budget[]
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+model Budget {
+  id            String   @id @default(uuid())
+  amount        Decimal  @db.Decimal(15, 2)
+  month         Int      // 1-12
+  year          Int
+  
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([userId, categoryId, month, year])
+  @@map("budgets")
+}
+
+// ============================================
+// EXPENSES with AI Integration
+// ============================================
+
+model Expense {
+  id            String   @id @default(uuid())
+  userId        String
+  date          DateTime
+  amount        Decimal  @db.Decimal(15, 2)
+  currency      String   @default("AED")
+  category      String
+  merchant      String?
+  paymentMethod String?  // cash, bank, credit_card
+  accountId     String?
+  recurrence    String   @default("one-time") // one-time, monthly, yearly
+  periodTag     String   // daily, monthly, yearly
+  notes         String?  @db.Text
+  source        String   @default("manual") // manual, gemini_text, gemini_receipt
+  receiptUrl    String?
+  confidence    Decimal? @db.Decimal(3, 2) // AI confidence score 0.00-1.00
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, category])
+  @@index([userId, periodTag])
+  @@map("expenses")
+}
+
+model ExpenseCategory {
+  id        String   @id @default(uuid())
+  userId    String?  // null for system/default categories
+  name      String
+  isCustom  Boolean  @default(false)
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@map("expense_categories")
+}
+
+// ============================================
+// NET WORTH TRACKING
+// ============================================
+
+model NetWorthSnapshot {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @default(now())
+  totalAssets     Decimal  @db.Decimal(15, 2)
+  totalLiabilities Decimal @db.Decimal(15, 2)
+  netWorth        Decimal  @db.Decimal(15, 2)
+  breakdown       Json?    // Detailed breakdown by asset type
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("networth_snapshots")
+}
+
+// ============================================
+// GOALS
+// ============================================
+
+model Goal {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  targetAmount    Decimal  @db.Decimal(15, 2)
+  currentAmount   Decimal  @db.Decimal(15, 2) @default(0)
+  targetDate      DateTime
+  priority        String   @default("Medium") // Low, Medium, High
+  linkedAccountId String?
+  notes           String?  @db.Text
+  isCompleted     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("goals")
+}
+
+// ============================================
+// AUDIT & SECURITY
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // CREATE, UPDATE, DELETE
+  entityType  String   // BankAccount, Loan, Transaction
+  entityId    String
+  changes     Json?    // Before/after values
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// MARKET DATA CACHE (Phase 3)
+// ============================================
+
+model PriceCache {
+  id          String   @id @default(uuid())
+  assetType   String   // STOCK, GOLD
+  symbol      String   // AAPL, GOLD_AED_PER_GRAM
+  price       Decimal  @db.Decimal(15, 4)
+  currency    String
+  fetchedAt   DateTime @default(now())
+
+  @@unique([assetType, symbol, fetchedAt])
+  @@index([assetType, symbol])
+  @@map("price_cache")
+}
