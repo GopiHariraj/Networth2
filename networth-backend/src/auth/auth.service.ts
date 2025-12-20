@@ -19,15 +19,28 @@ export class AuthService {
 
         if (!user) return null;
 
-        // Check password (simple override for mock users vs hashed real users)
-        // If it's a mock user, we might store plain text password in this demo environment
-        if (user.password === pass) {
-            const { password, ...result } = user;
-            return result;
+        // Check if this is a mock user with plain text password
+        if (user.password) {
+            if (user.password === pass) {
+                const { password, passwordHash, ...result } = user;
+                return result;
+            }
+            return null;
         }
 
-        // For real users with headers (if we had them properly typed from Prisma)
-        // const isValid = await argon2.verify(user.passwordHash, pass);
+        // For real database users with argon2 hashed passwords
+        if (user.passwordHash) {
+            try {
+                const isValid = await argon2.verify(user.passwordHash, pass);
+                if (isValid) {
+                    const { password, passwordHash, ...result } = user;
+                    return result;
+                }
+            } catch (error) {
+                // Invalid hash format or verification error
+                return null;
+            }
+        }
 
         return null;
     }
