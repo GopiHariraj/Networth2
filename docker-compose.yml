@@ -18,7 +18,7 @@ services:
     networks:
       - networth-network
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
   backend:
     build:
       context: ./networth-backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: networth-backend
     restart: unless-stopped
     environment:
@@ -52,7 +52,7 @@ services:
   frontend:
     build:
       context: ./networth-frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: networth-frontend
     restart: unless-stopped
     environment:

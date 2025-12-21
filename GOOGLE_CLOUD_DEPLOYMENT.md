@@ -596,8 +596,7 @@ Since your app doesn't have a signup page, create an admin user:
 # Access the backend container
 docker-compose -f docker-compose.prod.yml exec backend sh
 
-# Inside container, create seed script
-cat > create-admin.js << 'EOF'
+# Inside container, create seed scriptcat > create-admin.js << 'EOF'
 const { PrismaClient } = require('@prisma/client');
 const argon2 = require('argon2');
 
