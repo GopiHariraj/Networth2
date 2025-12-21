@@ -1,19 +1,123 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCurrency, CURRENCIES } from '../../lib/currency-context';
+import { useNetWorth } from '../../lib/networth-context';
 
 export default function SettingsPage() {
     const { currency, setCurrency } = useCurrency();
+    const { data: networthData } = useNetWorth();
     const [settings, setSettings] = useState({
         notifications: true,
         darkMode: false,
         language: 'en'
     });
 
+    const [activeGoal, setActiveGoal] = useState({
+        goalNetWorth: '',
+        targetDate: '',
+        notes: ''
+    });
+
+    // Load active goal from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('activeGoal');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setActiveGoal(parsed);
+            } catch (e) {
+                console.error('Failed to load active goal', e);
+            }
+        }
+    }, []);
+
     const handleSaveSettings = () => {
         localStorage.setItem('appSettings', JSON.stringify(settings));
         alert('Settings saved successfully! ⚙️');
+    };
+
+    // Save active goal to localStorage
+    const saveActiveGoal = () => {
+        if (activeGoal.goalNetWorth && activeGoal.targetDate) {
+            const goalData = {
+                ...activeGoal,
+                currentNetWorth: networthData.netWorth,
+                lastUpdated: new Date().toISOString()
+            };
+            localStorage.setItem('activeGoal', JSON.stringify(goalData));
+            // Trigger storage event for dashboard update
+            window.dispatchEvent(new Event('storage'));
+            alert('✅ Goal saved and synced to Dashboard!');
+        } else {
+            alert('⚠️ Please enter both Goal Net Worth and Target Date');
+        }
+    };
+
+    // Export all data as backup
+    const handleExportData = () => {
+        const backup = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            appName: 'Net Worth Tracker',
+            data: {
+                activeGoal: localStorage.getItem('activeGoal'),
+                appSettings: localStorage.getItem('appSettings'),
+                currency: localStorage.getItem('currency'),
+                // Add all other localStorage keys
+                ...Object.keys(localStorage).reduce((acc, key) => {
+                    acc[key] = localStorage.getItem(key);
+                    return acc;
+                }, {} as Record<string, string | null>)
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `networth-backup-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Backup downloaded successfully!');
+    };
+
+    // Import data from backup file
+    const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const backup = JSON.parse(e.target?.result as string);
+
+                // Validate format
+                if (backup.version && backup.data) {
+                    // Clear existing data
+                    const confirmRestore = window.confirm(
+                        '⚠️ This will replace all your current data. Continue?'
+                    );
+
+                    if (confirmRestore) {
+                        // Restore data
+                        Object.keys(backup.data).forEach(key => {
+                            if (backup.data[key] !== null) {
+                                localStorage.setItem(key, backup.data[key]);
+                            }
+                        });
+                        alert('✅ Data restored successfully! Page will reload.');
+                        window.location.reload();
+                    }
+                } else {
+                    alert('❌ Invalid backup file format');
+                }
+            } catch (error) {
+                alert('❌ Failed to read backup file');
+                console.error(error);
+            }
+        };
+        reader.readAsText(file);
     };
 
     return (
@@ -25,6 +129,107 @@ export default function SettingsPage() {
                 </header>
 
                 <div className="space-y-6">
+                    {/* Backup & Restore */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-2xl">
+                                💾
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-slate-900 dark:text-white">Backup & Restore</h2>
+                                <p className="text-sm text-slate-500">Export and import your data</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                                onClick={handleExportData}
+                                className="p-4 rounded-xl border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                            >
+                                <div className="text-3xl mb-2">📥</div>
+                                <div className="font-bold text-slate-900 dark:text-white">Export Backup</div>
+                                <div className="text-sm text-slate-500 mt-1">Download all your data</div>
+                            </button>
+
+                            <label className="p-4 rounded-xl border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors cursor-pointer">
+                                <div className="text-3xl mb-2">📤</div>
+                                <div className="font-bold text-slate-900 dark:text-white">Import Backup</div>
+                                <div className="text-sm text-slate-500 mt-1">Restore from file</div>
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    onChange={handleImportData}
+                                    className="hidden"
+                                />
+                            </label>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <p className="text-sm text-amber-800 dark:text-amber-200">
+                                💡 <strong>Tip:</strong> Export your data regularly to keep a backup of your financial information.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Active Goal Management */}
+                    <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg border border-purple-500">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
+                                🎯
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-white">Active Net Worth Goal</h2>
+                                <p className="text-sm text-purple-100">Syncs to your dashboard</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-purple-100 mb-2">
+                                    Goal Net Worth ({currency.code})
+                                </label>
+                                <input
+                                    type="number"
+                                    value={activeGoal.goalNetWorth}
+                                    onChange={(e) => setActiveGoal({ ...activeGoal, goalNetWorth: e.target.value })}
+                                    placeholder="e.g., 5000000"
+                                    className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-purple-100 mb-2">
+                                    Target Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={activeGoal.targetDate}
+                                    onChange={(e) => setActiveGoal({ ...activeGoal, targetDate: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-purple-100 mb-2">
+                                Notes (Optional)
+                            </label>
+                            <textarea
+                                value={activeGoal.notes}
+                                onChange={(e) => setActiveGoal({ ...activeGoal, notes: e.target.value })}
+                                placeholder="Add any notes about your goal..."
+                                rows={2}
+                                className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
+                            />
+                        </div>
+
+                        <button
+                            onClick={saveActiveGoal}
+                            className="w-full px-6 py-3 bg-white text-purple-600 font-bold rounded-xl hover:bg-purple-50 transition-colors shadow-lg"
+                        >
+                            💾 Save Goal & Sync to Dashboard
+                        </button>
+                    </div>
+
                     {/* Currency Settings */}
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="flex items-center gap-3 mb-6">
@@ -48,8 +253,8 @@ export default function SettingsPage() {
                                             key={curr.code}
                                             onClick={() => setCurrency(curr)}
                                             className={`p-4 rounded-xl border-2 transition-all ${currency.code === curr.code
-                                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-800'
+                                                ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-800'
                                                 }`}
                                         >
                                             <div className="text-2xl mb-1">{curr.flag}</div>
