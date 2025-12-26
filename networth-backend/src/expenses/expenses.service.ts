@@ -20,10 +20,15 @@ export class ExpensesService {
     }
 
     async create(userId: string, dto: CreateExpenseDto) {
+        // Ensure proper date conversion - convert to ISO string first, then Date
+        const dateObj = dto.date.includes('T')
+            ? new Date(dto.date)
+            : new Date(dto.date + 'T00:00:00.000Z');
+
         return this.prisma.expense.create({
             data: {
                 userId,
-                date: new Date(dto.date),
+                date: dateObj,
                 amount: dto.amount,
                 currency: dto.currency || 'AED',
                 category: dto.category,
