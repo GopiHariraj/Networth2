@@ -272,6 +272,8 @@ export default function Dashboard() {
         { name: 'Gold', value: networthData.assets.gold.totalValue },
         { name: 'Stocks', value: networthData.assets.stocks.totalValue },
         { name: 'Property', value: networthData.assets.property.totalValue },
+        { name: 'Bonds', value: networthData.assets.bonds.totalValue },
+        { name: 'Mutual Funds', value: networthData.assets.mutualFunds.totalValue },
     ].filter(a => a.value > 0 || a.name === 'Cash');
 
     const liabilitiesData = [
