@@ -9,6 +9,17 @@ async function bootstrap() {
 
   app.use(compression());
 
+  // Global Request Logger for diagnostics
+  app.use((req: any, res: any, next: any) => {
+    console.log(`[Request] ${req.method} ${req.url}`);
+    console.log(`[Headers]`, {
+      host: req.headers.host,
+      authorization: req.headers.authorization ? 'Present' : 'Missing',
+      'user-agent': req.headers['user-agent']
+    });
+    next();
+  });
+
   // Enable CORS - Allow all origins in development for mobile access
   app.enableCors({
     origin: true, // Allow all origins in development

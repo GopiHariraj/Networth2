@@ -249,7 +249,7 @@ export default function AdminPage() {
                 <p className="text-slate-500 dark:text-slate-400 text-center max-w-xs">
                     You do not have the necessary permissions to access the administrative dashboard.
                 </p>
-                <button onClick={() => router.push('/dashboard')} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25">
+                <button onClick={() => router.push('/')} className="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25">
                     Return Home
                 </button>
             </div>

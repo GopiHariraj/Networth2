@@ -138,8 +138,10 @@ export class AuthService {
     }
     console.log(`[AuthService] Login successful for: ${user.id}`);
     const payload = { email: user.email, sub: user.id, role: user.role };
+    const token = this.jwtService.sign(payload);
+    console.log(`[AuthService] Generated token for ${user.email} with payload:`, payload);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: token,
       user: {
         id: user.id,
         email: user.email,

@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (userData.forceChangePassword) {
             window.location.href = '/reset-password';
         } else {
-            window.location.href = '/dashboard';
+            window.location.href = '/';
         }
     };
 

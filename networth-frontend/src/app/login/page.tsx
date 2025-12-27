@@ -30,10 +30,6 @@ export default function LoginPage() {
         }
     };
 
-    const demoLogin = () => {
-        setEmail('admin@fortstec.com');
-        setPassword('Forts@123');
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 flex items-center justify-center p-4">
@@ -100,21 +96,8 @@ export default function LoginPage() {
                             )}
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={demoLogin}
-                            className="w-full bg-white/10 text-white py-4 rounded-2xl font-bold hover:bg-white/20 transition-all border border-white/30 backdrop-blur-sm text-sm"
-                        >
-                            ✨ Use Demo Credentials
-                        </button>
                     </form>
 
-                    {/* Footer */}
-                    <div className="mt-8 text-center">
-                        <p className="text-sm text-blue-100 font-medium opacity-80">
-                            Demo Access: admin@fortstec.com / Forts@123
-                        </p>
-                    </div>
                 </div>
 
                 {/* Bottom Info */}
