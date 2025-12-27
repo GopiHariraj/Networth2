@@ -41,7 +41,7 @@ export default function ChangePasswordPage() {
                 const updatedUser = { ...user, forceChangePassword: false };
                 login(token, updatedUser); // This triggers redirect to '/'
             } else {
-                router.push('/');
+                router.push('/dashboard');
             }
 
         } catch (err: any) {
