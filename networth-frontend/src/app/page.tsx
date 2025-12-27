@@ -10,6 +10,7 @@ import { transactionsApi } from '../lib/api/client';
 import { financialDataApi } from '../lib/api/financial-data';
 import { useCurrency } from '../lib/currency-context';
 import { useNetWorth } from '../lib/networth-context';
+import { useAuth } from '../lib/auth-context';
 import TransactionUpload from '../components/TransactionUpload';
 import ExpensePieChart from '../components/ExpensePieChart';
 
@@ -86,6 +87,7 @@ function TransactionRow({ tx, currencySymbol }: { tx: Transaction; currencySymbo
 }
 
 export default function Dashboard() {
+    const { isAuthenticated, isLoading } = useAuth();
     const { currency } = useCurrency();
     const { data: networthData, refreshNetWorth, isLoading: isNwLoading } = useNetWorth();
     const [dashboardData, setDashboardData] = useState<any>(null);
@@ -98,6 +100,11 @@ export default function Dashboard() {
     const [secondaryGoals, setSecondaryGoals] = useState<any>(null);
     const [isEditingGoal, setIsEditingGoal] = useState(false);
     const [editGoalValue, setEditGoalValue] = useState('');
+
+    // Don't render anything until auth check completes
+    if (isLoading || !isAuthenticated) {
+        return null;
+    }
     const [editGoalDate, setEditGoalDate] = useState('');
     const [isSavingGoal, setIsSavingGoal] = useState(false);
 
