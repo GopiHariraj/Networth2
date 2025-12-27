@@ -73,6 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = (newToken: string, userData: User) => {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(userData));
+
+        // Store token in cookie for middleware access (server-side)
+        document.cookie = `token=${newToken}; path=/; max-age=7200; SameSite=Lax`;
+
         setUser(userData);
         setToken(newToken);
         setIsAuthenticated(true);
@@ -97,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('refreshToken');
+
+        // Clear auth cookie
+        document.cookie = 'token=; path=/; max-age=0';
 
         // Clear user-scoped data if user ID exists
         if (userId) {
