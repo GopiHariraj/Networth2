@@ -67,14 +67,27 @@ export default function GoldPage() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        try {
+            // Dynamically import the compression utility
+            const { compressImage, validateImageFile } = await import('../../lib/imageUtils');
+
+            // Validate file
+            const validation = validateImageFile(file);
+            if (!validation.valid) {
+                alert(validation.error);
+                return;
+            }
+
+            // Show loading state
+            const compressedBase64 = await compressImage(file, 800, 0.7);
+            setFormData(prev => ({ ...prev, imageUrl: compressedBase64 }));
+        } catch (error: any) {
+            alert(error.message || 'Failed to process image. Please try a smaller image.');
+            console.error('Image upload error:', error);
         }
     };
 
