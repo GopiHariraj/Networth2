@@ -133,9 +133,9 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         } catch (e) { console.error('Error loading credit cards:', e); }
     };
 
-    // Memoized net worth data calculation
-    const data = React.useMemo(() => {
-        const gold = goldItems.map((item: any) => ({
+    // Individually memoized categories for "super fast" performance
+    const goldData = React.useMemo(() => {
+        const items = goldItems.map((item: any) => ({
             id: item.id,
             ornamentName: item.name,
             grams: parseFloat(item.weightGrams),
@@ -145,8 +145,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             purity: item.notes?.split(' ')[0] || '24K',
             imageUrl: item.imageUrl
         }));
+        const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        return { items, totalValue: total };
+    }, [goldItems]);
 
-        const stocks = stockItems.map((item: any) => ({
+    const stockData = React.useMemo(() => {
+        const items = stockItems.map((item: any) => ({
             id: item.id,
             market: item.exchange,
             stockName: item.name,
@@ -155,8 +159,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
             purchaseDate: item.createdAt
         }));
+        const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        return { items, totalValue: total };
+    }, [stockItems]);
 
-        const property = propertyItems.map((item: any) => ({
+    const propertyData = React.useMemo(() => {
+        const items = propertyItems.map((item: any) => ({
             id: item.id,
             propertyName: item.name,
             location: item.location,
@@ -168,8 +176,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             area: item.area ? parseFloat(item.area) : 0,
             imageUrl: item.imageUrl
         }));
+        const total = items.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        return { items, totalValue: total };
+    }, [propertyItems]);
 
-        const loans = loanItems.map((item: any) => ({
+    const loanData = React.useMemo(() => {
+        const items = loanItems.map((item: any) => ({
             id: item.id,
             lenderName: item.lenderName,
             linkedProperty: item.loanType,
@@ -182,8 +194,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             notes: item.notes || '',
             emiDueDate: 1
         }));
+        const total = items.reduce((sum, item) => sum + (item.outstandingBalance || 0), 0);
+        return { items, totalValue: total };
+    }, [loanItems]);
 
-        const bonds = bondItems.map((item: any) => ({
+    const bondData = React.useMemo(() => {
+        const items = bondItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             issuer: item.issuer,
@@ -193,8 +209,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             maturityDate: item.maturityDate,
             notes: item.notes
         }));
+        const total = items.reduce((sum, item) => sum + (item.currentValue || item.faceValue || 0), 0);
+        return { items, totalValue: total };
+    }, [bondItems]);
 
-        const mutualFunds = mutualFundItems.map((item: any) => ({
+    const mutualFundData = React.useMemo(() => {
+        const items = mutualFundItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             fundHouse: item.fundHouse,
@@ -204,8 +224,12 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             currentValue: parseFloat(item.currentValue),
             notes: item.notes
         }));
+        const total = items.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        return { items, totalValue: total };
+    }, [mutualFundItems]);
 
-        const cards = creditCardItems.map((item: any) => ({
+    const creditCardData = React.useMemo(() => {
+        const items = creditCardItems.map((item: any) => ({
             id: item.id,
             cardName: item.cardName,
             bankName: item.bankName,
@@ -215,47 +239,49 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             interestRate: item.interestRate,
             notes: item.notes
         }));
+        const total = items.reduce((sum, item) => sum + (item.usedAmount || 0), 0);
+        return { items, totalValue: total };
+    }, [creditCardItems]);
 
-        const goldTotal = gold.reduce((sum, item) => sum + (item.totalValue || 0), 0);
-        const bondsTotal = bonds.reduce((sum, item) => sum + (item.currentValue || item.faceValue || 0), 0);
-        const stocksTotal = stocks.reduce((sum, item) => sum + (item.totalValue || 0), 0);
-        const propertyTotal = property.reduce((sum, item) => sum + (item.currentValue || 0), 0);
-        const mutualFundsTotal = mutualFunds.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+    const cashData = React.useMemo(() => {
         const bankTotal = bankAccounts.reduce((sum, item: any) => sum + (parseFloat(item.balance) || 0), 0);
         const walletTotal = wallets.reduce((sum, item: any) => sum + (parseFloat(item.balance) || 0), 0);
         const cashTotal = bankTotal + walletTotal;
-        const loansTotal = loans.reduce((sum, item) => sum + (item.outstandingBalance || 0), 0);
-        const cardsTotal = cards.reduce((sum, item) => sum + (item.usedAmount || 0), 0);
+        return {
+            bankAccounts,
+            wallets,
+            totalBank: bankTotal,
+            totalWallet: walletTotal,
+            totalCash: cashTotal
+        };
+    }, [bankAccounts, wallets]);
 
-        const totalAssets = goldTotal + bondsTotal + stocksTotal + propertyTotal + mutualFundsTotal + cashTotal;
-        const totalLiabilities = loansTotal + cardsTotal;
+    // Final combined net worth data
+    const data = React.useMemo(() => {
+        const totalAssets = goldData.totalValue + bondData.totalValue + stockData.totalValue +
+            propertyData.totalValue + mutualFundData.totalValue + cashData.totalCash;
+        const totalLiabilities = loanData.totalValue + creditCardData.totalValue;
         const netWorth = totalAssets - totalLiabilities;
 
         return {
             assets: {
-                gold: { items: gold, totalValue: goldTotal },
-                bonds: { items: bonds, totalValue: bondsTotal },
-                stocks: { items: stocks, totalValue: stocksTotal },
-                property: { items: property, totalValue: propertyTotal },
-                mutualFunds: { items: mutualFunds, totalValue: mutualFundsTotal },
-                cash: {
-                    bankAccounts: bankAccounts as any,
-                    wallets: wallets as any,
-                    totalBank: bankTotal,
-                    totalWallet: walletTotal,
-                    totalCash: cashTotal
-                }
+                gold: goldData,
+                bonds: bondData,
+                stocks: stockData,
+                property: propertyData,
+                mutualFunds: mutualFundData,
+                cash: cashData
             },
             liabilities: {
-                loans: { items: loans, totalValue: loansTotal },
-                creditCards: { items: cards, totalValue: cardsTotal }
+                loans: loanData,
+                creditCards: creditCardData
             },
             totalAssets,
             totalLiabilities,
             netWorth,
             lastUpdated
         };
-    }, [goldItems, bondItems, stockItems, propertyItems, mutualFundItems, bankAccounts, wallets, loanItems, creditCardItems, lastUpdated]);
+    }, [goldData, bondData, stockData, propertyData, mutualFundData, cashData, loanData, creditCardData, lastUpdated]);
 
     const loadData = async () => {
         try {

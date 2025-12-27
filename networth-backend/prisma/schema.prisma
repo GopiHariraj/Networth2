@@ -256,6 +256,7 @@ model Transaction {
   category      Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId, date])
+  @@index([userId, type])
   @@index([categoryId])
   @@map("transactions")
 }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../lib/auth-context';
 import { useRouter } from 'next/navigation';
+import { authApi } from '../../lib/api/client';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -18,10 +19,12 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            await login(email, password);
-            router.push('/');
+            const response = await authApi.login({ email, password });
+            const { token, user } = response.data;
+            login(token, user);
+            // Context login will handle the redirect
         } catch (err: any) {
-            setError(err.message || 'Invalid credentials');
+            setError(err.response?.data?.message || err.message || 'Invalid credentials');
         } finally {
             setLoading(false);
         }

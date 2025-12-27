@@ -4,8 +4,9 @@ import "./globals.css";
 import { AuthProvider } from "../lib/auth-context";
 import { CurrencyProvider } from "../lib/currency-context";
 import { NetWorthProvider } from "../lib/networth-context";
-import Layout from "../components/Layout";
+import RootLayoutLayout from "../components/Layout";
 import SessionTimeout from "../components/auth/SessionTimeout";
+import { SWRProvider } from "../lib/swr-config";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,14 +23,16 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={inter.className}>
-                <AuthProvider>
-                    <SessionTimeout />
-                    <CurrencyProvider>
-                        <NetWorthProvider>
-                            <Layout>{children}</Layout>
-                        </NetWorthProvider>
-                    </CurrencyProvider>
-                </AuthProvider>
+                <SWRProvider>
+                    <AuthProvider>
+                        <SessionTimeout />
+                        <CurrencyProvider>
+                            <NetWorthProvider>
+                                <RootLayoutLayout>{children}</RootLayoutLayout>
+                            </NetWorthProvider>
+                        </CurrencyProvider>
+                    </AuthProvider>
+                </SWRProvider>
             </body>
         </html>
     );

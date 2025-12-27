@@ -14,7 +14,7 @@ export class TransactionsService {
     private goldAssetsService: GoldAssetsService,
     @Inject(forwardRef(() => StockAssetsService))
     private stockAssetsService: StockAssetsService,
-  ) {}
+  ) { }
 
   async create(userId: string, dto: CreateTransactionDto) {
     return this.prisma.transaction.create({
@@ -137,37 +137,47 @@ export class TransactionsService {
   }
 
   async getDashboardData(userId: string) {
-    const transactions = await this.prisma.transaction.findMany({
-      where: { userId },
-      include: { category: true },
-    });
-
-    const income = transactions
-      .filter((t: any) => t.type === 'INCOME')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-
-    const expense = transactions
-      .filter((t: any) => t.type === 'EXPENSE')
-      .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-
-    const categoryBreakdown: Record<string, number> = {};
-    transactions.forEach((t: any) => {
-      if (t.type === 'EXPENSE' && t.category) {
-        categoryBreakdown[t.category.name] =
-          (categoryBreakdown[t.category.name] || 0) + Number(t.amount);
-      }
-    });
-
-    const pieChartData = Object.entries(categoryBreakdown).map(
-      ([name, value]) => ({
-        name,
-        value,
+    const [incomeResult, expenseResult, recentTransactions, categoryData] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: { userId, type: 'INCOME' },
+        _sum: { amount: true },
       }),
-    );
+      this.prisma.transaction.aggregate({
+        where: { userId, type: 'EXPENSE' },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.findMany({
+        where: { userId },
+        include: { category: true },
+        orderBy: { date: 'desc' },
+        take: 5,
+      }),
+      this.prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: { userId, type: 'EXPENSE' },
+        _sum: { amount: true },
+      }),
+    ]);
 
-    // Monthly Trend (Simple last 6 months)
-    // Group by month-year
-    // This is a simplified version
+    // Fetch category names for the breakdown
+    const categoryIds = categoryData.map(c => c.categoryId).filter(Boolean);
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds as string[] } },
+      select: { id: true, name: true },
+    });
+
+    const categoryMap = categories.reduce((acc: Record<string, string>, cat) => {
+      acc[cat.id] = cat.name;
+      return acc;
+    }, {});
+
+    const pieChartData = categoryData.map(c => ({
+      name: categoryMap[c.categoryId as string] || 'Uncategorized',
+      value: Number(c._sum.amount),
+    }));
+
+    const income = Number(incomeResult._sum.amount || 0);
+    const expense = Number(expenseResult._sum.amount || 0);
 
     return {
       summary: {
@@ -176,7 +186,7 @@ export class TransactionsService {
         net: income - expense,
       },
       pieChartData,
-      recentTransactions: transactions.slice(0, 5),
+      recentTransactions,
     };
   }
 }
