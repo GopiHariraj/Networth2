@@ -27,7 +27,7 @@ const AVAILABLE_CHARTS = [
     { id: 'incomevsexpense', name: 'Income vs Expense', icon: '💵' }
 ];
 
-function StatCard({ label, value, trend, trendUp }: { label: string, value: string, trend: string, trendUp: boolean }) {
+const StatCard = React.memo(({ label, value, trend, trendUp }: { label: string, value: string, trend: string, trendUp: boolean }) => {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider">{label}</p>
@@ -38,7 +38,8 @@ function StatCard({ label, value, trend, trendUp }: { label: string, value: stri
             </div>
         </div>
     );
-}
+});
+StatCard.displayName = 'StatCard';
 
 interface Transaction {
     id: string;
@@ -50,7 +51,7 @@ interface Transaction {
     category?: { name: string };
 }
 
-function AssetCard({ asset, currencySymbol }: { asset: any; currencySymbol: string }) {
+const AssetCard = React.memo(({ asset, currencySymbol }: { asset: any; currencySymbol: string }) => {
     return (
         <div className="group relative bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 transition-all cursor-pointer">
             <div className={`absolute top-0 left-0 w-1 h-full rounded-l-2xl bg-gradient-to-b ${asset.color}`}></div>
@@ -64,9 +65,10 @@ function AssetCard({ asset, currencySymbol }: { asset: any; currencySymbol: stri
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{currencySymbol} {asset.value.toLocaleString()}</p>
         </div>
     );
-}
+});
+AssetCard.displayName = 'AssetCard';
 
-function TransactionRow({ tx, currencySymbol }: { tx: Transaction; currencySymbol: string }) {
+const TransactionRow = React.memo(({ tx, currencySymbol }: { tx: Transaction; currencySymbol: string }) => {
     const isCredit = tx.type === 'INCOME';
     return (
         <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer">
@@ -84,7 +86,8 @@ function TransactionRow({ tx, currencySymbol }: { tx: Transaction; currencySymbo
             </span>
         </div>
     );
-}
+});
+TransactionRow.displayName = 'TransactionRow';
 
 export default function Dashboard() {
     const { isAuthenticated, isLoading } = useAuth();
@@ -109,12 +112,12 @@ export default function Dashboard() {
     const [isSavingGoal, setIsSavingGoal] = useState(false);
 
     // Derived asset data for cards/charts
-    const dynamicAssets = [
+    const dynamicAssets = React.useMemo(() => [
         { id: '1', name: 'Cash & Bank', value: networthData.assets.cash.totalCash, change: '+2.4%', type: 'Liquid', color: 'from-blue-500 to-blue-600', path: '/cash' },
         { id: '2', name: 'Gold', value: networthData.assets.gold.totalValue, change: '+5.1%', type: 'Asset', color: 'from-amber-400 to-amber-500', path: '/gold' },
         { id: '3', name: 'Stocks', value: networthData.assets.stocks.totalValue, change: '+12.3%', type: 'Investment', color: 'from-purple-500 to-purple-600', path: '/stocks' },
         { id: '4', name: 'Property', value: networthData.assets.property.totalValue, change: '+1.5%', type: 'Real Estate', color: 'from-emerald-500 to-emerald-600', path: '/property' },
-    ].filter(a => a.value > 0 || (a.name === 'Cash & Bank'));
+    ].filter(a => a.value > 0 || (a.name === 'Cash & Bank')), [networthData.assets]);
 
     // Trend Data based on actual current net worth (no fake fallbacks!)
     const currentNW = networthData.netWorth || 0; // Use 0 if not loaded, not 2000000
@@ -164,7 +167,7 @@ export default function Dashboard() {
         };
 
         fetchGoals();
-        const interval = setInterval(fetchGoals, 10000); // Poll every 10 seconds
+        const interval = setInterval(fetchGoals, 30000); // Poll every 30 seconds instead of 10
         return () => clearInterval(interval);
     }, []);
 
@@ -281,25 +284,25 @@ export default function Dashboard() {
     }, []);
 
     // Dynamic chart data from context and API
-    const assetAllocationData = [
+    const assetAllocationData = React.useMemo(() => [
         { name: 'Cash', value: networthData.assets.cash.totalCash },
         { name: 'Gold', value: networthData.assets.gold.totalValue },
         { name: 'Stocks', value: networthData.assets.stocks.totalValue },
         { name: 'Property', value: networthData.assets.property.totalValue },
         { name: 'Bonds', value: networthData.assets.bonds.totalValue },
         { name: 'Mutual Funds', value: networthData.assets.mutualFunds.totalValue },
-    ].filter(a => a.value > 0 || a.name === 'Cash');
+    ].filter(a => a.value > 0 || a.name === 'Cash'), [networthData.assets]);
 
-    const liabilitiesData = [
+    const liabilitiesData = React.useMemo(() => [
         { name: 'Loans', value: networthData.liabilities.loans.totalValue },
         { name: 'Cards', value: networthData.liabilities.creditCards.totalValue },
-    ].filter(l => l.value > 0 || l.name === 'Loans');
+    ].filter(l => l.value > 0 || l.name === 'Loans'), [networthData.liabilities]);
 
-    const emiTrendData = [
+    const emiTrendData = React.useMemo(() => [
         { month: 'Oct', loans: 4500, cards: 3700 },
         { month: 'Nov', loans: 4500, cards: 3700 },
         { month: 'Dec', loans: (networthData.liabilities.loans.items || []).reduce((sum: number, l: any) => sum + (l.emiAmount || 0), 0), cards: 1200 },
-    ];
+    ], [networthData.liabilities]);
 
     const cashVsInvestData = [
         { month: 'Oct', cash: 95000, investments: 150000 },
@@ -482,7 +485,7 @@ export default function Dashboard() {
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h2 className="text-2xl font-bold">🎯 Net Worth Goal Progress</h2>
-                            <p className="text-purple-100 mt-1">Target: {targetDate.toLocaleDateString()}</p>
+                            <p className="text-purple-100 mt-1">Target: {targetDate?.toLocaleDateString() || 'Set a target date'}</p>
                         </div>
                         <div className="flex gap-3 items-center">
                             <div className={`px-4 py-2 rounded-full font-bold ${goalStatus === 'ahead' ? 'bg-green-500' : goalStatus === 'behind' ? 'bg-red-500' : 'bg-yellow-500'}`}>
