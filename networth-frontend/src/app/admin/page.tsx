@@ -140,7 +140,8 @@ export default function AdminPage() {
                 lastName: editingUser.lastName,
                 email: editingUser.email,
                 role: editingUser.role,
-                isActive: editingUser.isActive
+                isActive: editingUser.isActive,
+                password: editingUser.newPassword || undefined
             });
             setMessage(`✅ Success: User updated!`);
             setShowEditModal(false);
@@ -284,6 +285,37 @@ export default function AdminPage() {
                 </div>
             </div>
 
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-2xl">👥</div>
+                        <div>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Total Users</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">{users.length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-2xl">🛡️</div>
+                        <div>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Admins</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">{users.filter(u => u.role === 'SUPER_ADMIN').length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-2xl">⚡</div>
+                        <div>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Active Users</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">{users.filter(u => u.isActive).length}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Alert & Status Bar */}
             {message && (
                 <div className={`p-4 rounded-2xl border flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 ${message.includes('❌')
@@ -306,7 +338,7 @@ export default function AdminPage() {
                                     <span className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xl">👥</span>
                                     User Management
                                 </h2>
-                                <p className="text-slate-500 text-sm mt-1">Found {users.length} registered users</p>
+                                <p className="text-slate-500 text-sm mt-1">Found {filteredUsers.length} users matching your criteria</p>
                             </div>
                             <div className="flex gap-2">
                                 <div className="relative">
@@ -326,28 +358,42 @@ export default function AdminPage() {
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 text-xs font-bold uppercase tracking-widest">
                                     <tr>
-                                        <th className="px-8 py-5">Full Name</th>
-                                        <th className="px-6 py-5">Email Address</th>
+                                        <th className="px-8 py-5">User</th>
                                         <th className="px-6 py-5">Role</th>
+                                        <th className="px-6 py-5">Status</th>
                                         <th className="px-8 py-5 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {filteredUsers.map((u) => (
                                         <tr key={u.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/5 transition-colors">
-                                            <td className="px-8 py-5 font-bold text-slate-900 dark:text-white capitalize">
+                                            <td className="px-8 py-5">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-black text-slate-500">
+                                                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-black text-slate-500 overflow-hidden">
                                                         {u.firstName?.charAt(0) || u.email?.slice(0, 1).toUpperCase()}
                                                     </div>
-                                                    <div>{u.firstName} {u.lastName}</div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-900 dark:text-white capitalize leading-none mb-1">
+                                                            {u.firstName} {u.lastName}
+                                                        </div>
+                                                        <div className="text-xs text-slate-400 font-medium">{u.email}</div>
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-5 text-slate-500 font-medium">{u.email}</td>
                                             <td className="px-6 py-5">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight ${u.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                                                     {u.role.replace('_', ' ')}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                <button
+                                                    onClick={() => handleToggleStatus(u)}
+                                                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight transition-all ${u.isActive
+                                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                        : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                                                >
+                                                    {u.isActive ? 'Active' : 'Disabled'}
+                                                </button>
                                             </td>
                                             <td className="px-8 py-5 text-right whitespace-nowrap">
                                                 <div className="flex gap-2 justify-end">
@@ -358,6 +404,15 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                     ))}
+                                    {filteredUsers.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-8 py-20 text-center">
+                                                <div className="text-4xl mb-4">🔍</div>
+                                                <p className="text-slate-500 font-bold text-lg">No users found</p>
+                                                <p className="text-slate-400 text-sm">Try adjusting your search query</p>
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -397,12 +452,20 @@ export default function AdminPage() {
                         </div>
                         <div className="p-8">
                             <form onSubmit={handleCreateUser} className="space-y-4">
-                                <input
-                                    type="text" required
-                                    placeholder="Full Name"
-                                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
-                                    value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                                />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <input
+                                        type="text" required
+                                        placeholder="First Name"
+                                        className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
+                                        value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })}
+                                    />
+                                    <input
+                                        type="text" required
+                                        placeholder="Last Name"
+                                        className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
+                                        value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })}
+                                    />
+                                </div>
                                 <input
                                     type="email" required
                                     placeholder="Email Address"
@@ -456,23 +519,48 @@ export default function AdminPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-md w-full p-8">
                         <h2 className="text-2xl font-black mb-6">Edit User</h2>
                         <form onSubmit={handleSaveUpdate} className="space-y-4">
-                            <input
-                                type="text" required
-                                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
-                                value={editingUser.name} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
-                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <input
+                                    type="text" required
+                                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
+                                    value={editingUser.firstName} onChange={e => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                                    placeholder="First Name"
+                                />
+                                <input
+                                    type="text" required
+                                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
+                                    value={editingUser.lastName} onChange={e => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                                    placeholder="Last Name"
+                                />
+                            </div>
                             <input
                                 type="email" required
                                 className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
                                 value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
                             />
-                            <select
-                                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-bold"
-                                value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
-                            >
-                                <option value="USER">User</option>
-                                <option value="SUPER_ADMIN">System Admin</option>
-                            </select>
+                            <input
+                                type="password"
+                                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-medium"
+                                value={editingUser.newPassword || ''} onChange={e => setEditingUser({ ...editingUser, newPassword: e.target.value })}
+                                placeholder="New Password (leave blank to keep current)"
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <select
+                                    className="w-full px-5 py-1 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-bold"
+                                    value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
+                                >
+                                    <option value="USER">User</option>
+                                    <option value="SUPER_ADMIN">Admin</option>
+                                </select>
+                                <select
+                                    className="w-full px-5 py-1 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none outline-none font-bold"
+                                    value={editingUser.isActive ? 'true' : 'false'}
+                                    onChange={e => setEditingUser({ ...editingUser, isActive: e.target.value === 'true' })}
+                                >
+                                    <option value="true">Active</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                            </div>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 font-bold rounded-2xl">Cancel</button>
                                 <button type="submit" className="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl">Save</button>

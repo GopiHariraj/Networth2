@@ -189,6 +189,12 @@ export class UsersService {
       }
     }
 
+    // If password is provided, hash it
+    let hashedPassword;
+    if (updateUserDto.password) {
+      hashedPassword = await argon2.hash(updateUserDto.password);
+    }
+
     // Update the user
     const updatedUser = await this.prisma.user.update({
       where: { id },
@@ -201,6 +207,7 @@ export class UsersService {
         ...(updateUserDto.isActive !== undefined && {
           isActive: updateUserDto.isActive,
         }),
+        ...(hashedPassword && { passwordHash: hashedPassword }),
       },
     });
 
