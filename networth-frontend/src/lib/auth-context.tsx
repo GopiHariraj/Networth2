@@ -21,6 +21,7 @@ interface AuthContextType {
     logout: () => void;
     updateUser: (user: Partial<User>) => void;
     isAuthenticated: boolean;
+    isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         // Check for existing auth
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(parsedUser);
                 setToken(savedToken);
                 setIsAuthenticated(true);
+                setIsLoading(false);
 
                 // Force Password Change Check
                 if (parsedUser.forceChangePassword) {
@@ -54,11 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.error('Failed to parse stored user', e);
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
+                setIsLoading(false);
             }
         } else {
             // Redirect to login if not authenticated and not on public page
             const publicPaths = ['/login', '/register', '/reset-password', '/auth/reset-password', '/auth/magic-login', '/auth/reset'];
 
+            setIsLoading(false);
             if (!publicPaths.some(path => pathname.startsWith(path))) {
                 router.push('/login');
             }
@@ -119,8 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, updateUser, isAuthenticated }}>
-            {children}
+        <AuthContext.Provider value={{ user, token, login, logout, updateUser, isAuthenticated, isLoading }}>
+            {isLoading ? (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+                    <div className="text-center">
+                        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium">Loading...</p>
+                    </div>
+                </div>
+            ) : children}
         </AuthContext.Provider>
     );
 }
