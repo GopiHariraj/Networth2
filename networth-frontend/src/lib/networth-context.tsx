@@ -53,254 +53,234 @@ const NetWorthContext = createContext<NetWorthContextType | undefined>(undefined
 export function NetWorthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    const [data, setData] = useState<NetWorthData>({
-        assets: {
-            gold: { items: [], totalValue: 0 },
-            bonds: { items: [], totalValue: 0 },
-            stocks: { items: [], totalValue: 0 },
-            property: { items: [], totalValue: 0 },
-            mutualFunds: { items: [], totalValue: 0 },
-            cash: {
-                bankAccounts: [],
-                wallets: [],
-                totalBank: 0,
-                totalWallet: 0,
-                totalCash: 0
-            }
-        },
-        liabilities: {
-            loans: { items: [], totalValue: 0 },
-            creditCards: { items: [], totalValue: 0 }
-        },
-        totalAssets: 0,
-        totalLiabilities: 0,
-        netWorth: 0,
-        lastUpdated: new Date().toISOString()
-    });
 
-    // Load data from database via APIs
+    // Raw data states for "super fast" response
+    const [goldItems, setGoldItems] = useState<AssetItem[]>([]);
+    const [bondItems, setBondItems] = useState<AssetItem[]>([]);
+    const [stockItems, setStockItems] = useState<AssetItem[]>([]);
+    const [propertyItems, setPropertyItems] = useState<AssetItem[]>([]);
+    const [mutualFundItems, setMutualFundItems] = useState<AssetItem[]>([]);
+    const [bankAccounts, setBankAccounts] = useState<AssetItem[]>([]);
+    const [wallets, setWallets] = useState<AssetItem[]>([]);
+    const [loanItems, setLoanItems] = useState<AssetItem[]>([]);
+    const [creditCardItems, setCreditCardItems] = useState<AssetItem[]>([]);
+    const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString());
+
+    // Individual loaders for category-specific refreshes
+    const loadGold = async () => {
+        try {
+            const res = await financialDataApi.goldAssets.getAll();
+            setGoldItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading gold:', e); }
+    };
+
+    const loadStocks = async () => {
+        try {
+            const res = await financialDataApi.stockAssets.getAll();
+            setStockItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading stocks:', e); }
+    };
+
+    const loadProperties = async () => {
+        try {
+            const res = await financialDataApi.properties.getAll();
+            setPropertyItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading properties:', e); }
+    };
+
+    const loadBankAccounts = async () => {
+        try {
+            const res = await financialDataApi.bankAccounts.getAll();
+            const all = res.data || [];
+            setBankAccounts(all.filter((a: any) => a.accountType !== 'Wallet'));
+            setWallets(all.filter((a: any) => a.accountType === 'Wallet'));
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading bank accounts:', e); }
+    };
+
+    const loadLoans = async () => {
+        try {
+            const res = await financialDataApi.loans.getAll();
+            setLoanItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading loans:', e); }
+    };
+
+    const loadBonds = async () => {
+        try {
+            const res = await financialDataApi.bondAssets.getAll();
+            setBondItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading bonds:', e); }
+    };
+
+    const loadMutualFunds = async () => {
+        try {
+            const res = await financialDataApi.mutualFunds.getAll();
+            setMutualFundItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading mutual funds:', e); }
+    };
+
+    const loadCreditCards = async () => {
+        try {
+            const res = await financialDataApi.creditCards.getAll();
+            setCreditCardItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading credit cards:', e); }
+    };
+
+    // Memoized net worth data calculation
+    const data = React.useMemo(() => {
+        const gold = goldItems.map((item: any) => ({
+            id: item.id,
+            ornamentName: item.name,
+            grams: parseFloat(item.weightGrams),
+            pricePerGram: parseFloat(item.purchasePrice),
+            totalValue: parseFloat(item.currentValue),
+            purchaseDate: item.purchaseDate || new Date().toISOString(),
+            purity: item.notes?.split(' ')[0] || '24K',
+            imageUrl: item.imageUrl
+        }));
+
+        const stocks = stockItems.map((item: any) => ({
+            id: item.id,
+            market: item.exchange,
+            stockName: item.name,
+            units: parseFloat(item.quantity),
+            unitPrice: parseFloat(item.currentPrice),
+            totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
+            purchaseDate: item.createdAt
+        }));
+
+        const property = propertyItems.map((item: any) => ({
+            id: item.id,
+            propertyName: item.name,
+            location: item.location,
+            address: item.address || '',
+            purchasePrice: parseFloat(item.purchasePrice),
+            currentValue: parseFloat(item.currentValue),
+            propertyType: item.propertyType,
+            purchaseDate: item.purchaseDate || new Date().toISOString(),
+            area: item.area ? parseFloat(item.area) : 0,
+            imageUrl: item.imageUrl
+        }));
+
+        const loans = loanItems.map((item: any) => ({
+            id: item.id,
+            lenderName: item.lenderName,
+            linkedProperty: item.loanType,
+            originalAmount: parseFloat(item.principal),
+            outstandingBalance: parseFloat(item.outstanding),
+            emiAmount: parseFloat(item.emiAmount),
+            interestRate: parseFloat(item.interestRate),
+            loanStartDate: item.startDate,
+            loanEndDate: item.endDate,
+            notes: item.notes || '',
+            emiDueDate: 1
+        }));
+
+        const bonds = bondItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            issuer: item.issuer,
+            faceValue: parseFloat(item.faceValue),
+            currentValue: parseFloat(item.currentValue),
+            interestRate: parseFloat(item.interestRate),
+            maturityDate: item.maturityDate,
+            notes: item.notes
+        }));
+
+        const mutualFunds = mutualFundItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            fundHouse: item.fundHouse,
+            units: parseFloat(item.units),
+            avgNav: parseFloat(item.avgNav),
+            currentNav: parseFloat(item.currentNav),
+            currentValue: parseFloat(item.currentValue),
+            notes: item.notes
+        }));
+
+        const cards = creditCardItems.map((item: any) => ({
+            id: item.id,
+            cardName: item.cardName,
+            bankName: item.bankName,
+            creditLimit: parseFloat(item.creditLimit),
+            usedAmount: parseFloat(item.usedAmount),
+            dueDate: item.dueDate,
+            interestRate: item.interestRate,
+            notes: item.notes
+        }));
+
+        const goldTotal = gold.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        const bondsTotal = bonds.reduce((sum, item) => sum + (item.currentValue || item.faceValue || 0), 0);
+        const stocksTotal = stocks.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        const propertyTotal = property.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        const mutualFundsTotal = mutualFunds.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        const bankTotal = bankAccounts.reduce((sum, item: any) => sum + (parseFloat(item.balance) || 0), 0);
+        const walletTotal = wallets.reduce((sum, item: any) => sum + (parseFloat(item.balance) || 0), 0);
+        const cashTotal = bankTotal + walletTotal;
+        const loansTotal = loans.reduce((sum, item) => sum + (item.outstandingBalance || 0), 0);
+        const cardsTotal = cards.reduce((sum, item) => sum + (item.usedAmount || 0), 0);
+
+        const totalAssets = goldTotal + bondsTotal + stocksTotal + propertyTotal + mutualFundsTotal + cashTotal;
+        const totalLiabilities = loansTotal + cardsTotal;
+        const netWorth = totalAssets - totalLiabilities;
+
+        return {
+            assets: {
+                gold: { items: gold, totalValue: goldTotal },
+                bonds: { items: bonds, totalValue: bondsTotal },
+                stocks: { items: stocks, totalValue: stocksTotal },
+                property: { items: property, totalValue: propertyTotal },
+                mutualFunds: { items: mutualFunds, totalValue: mutualFundsTotal },
+                cash: {
+                    bankAccounts: bankAccounts as any,
+                    wallets: wallets as any,
+                    totalBank: bankTotal,
+                    totalWallet: walletTotal,
+                    totalCash: cashTotal
+                }
+            },
+            liabilities: {
+                loans: { items: loans, totalValue: loansTotal },
+                creditCards: { items: cards, totalValue: cardsTotal }
+            },
+            totalAssets,
+            totalLiabilities,
+            netWorth,
+            lastUpdated
+        };
+    }, [goldItems, bondItems, stockItems, propertyItems, mutualFundItems, bankAccounts, wallets, loanItems, creditCardItems, lastUpdated]);
+
     const loadData = async () => {
         try {
             setIsLoading(true);
-
-            // Check if user is authenticated
             const token = localStorage.getItem('token');
             const savedUser = localStorage.getItem('user');
 
             if (!token || !savedUser) {
-                // User not logged in, skip data loading
                 setIsLoading(false);
                 return;
             }
 
-            // Parse user to get user ID
-            let userId: string | null = null;
             try {
                 const user = JSON.parse(savedUser);
-                userId = user.id;
-
-                // ALWAYS reset data before loading to prevent flash of old data
-                // This ensures clean slate for every data fetch
-                console.log('[NetWorth] Resetting data before loading...', { userId });
-                setData({
-                    assets: {
-                        gold: { items: [], totalValue: 0 },
-                        bonds: { items: [], totalValue: 0 },
-                        stocks: { items: [], totalValue: 0 },
-                        property: { items: [], totalValue: 0 },
-                        mutualFunds: { items: [], totalValue: 0 },
-                        cash: {
-                            bankAccounts: [],
-                            wallets: [],
-                            totalBank: 0,
-                            totalWallet: 0,
-                            totalCash: 0
-                        }
-                    },
-                    liabilities: {
-                        loans: { items: [], totalValue: 0 },
-                        creditCards: { items: [], totalValue: 0 }
-                    },
-                    totalAssets: 0,
-                    totalLiabilities: 0,
-                    netWorth: 0,
-                    lastUpdated: new Date().toISOString()
-                });
-
-                setCurrentUserId(userId);
+                setCurrentUserId(user.id);
             } catch (e) {
-                console.error('Error parsing user:', e);
                 setIsLoading(false);
                 return;
             }
 
-            // Fetch all financial data from APIs in parallel
-            const [
-                goldRes,
-                stocksRes,
-                propertyRes,
-                bankAccountsRes,
-                loansRes,
-                bondsRes,
-                mutualFundsRes,
-                creditCardsRes,
-            ] = await Promise.all([
-                financialDataApi.goldAssets.getAll().catch(() => ({ data: [] })),
-                financialDataApi.stockAssets.getAll().catch(() => ({ data: [] })),
-                financialDataApi.properties.getAll().catch(() => ({ data: [] })),
-                financialDataApi.bankAccounts.getAll().catch(() => ({ data: [] })),
-                financialDataApi.loans.getAll().catch(() => ({ data: [] })),
-                financialDataApi.bondAssets.getAll().catch(() => ({ data: [] })),
-                financialDataApi.mutualFunds.getAll().catch(() => ({ data: [] })),
-                financialDataApi.creditCards.getAll().catch(() => ({ data: [] })),
+            // Fetch everything in parallel
+            await Promise.all([
+                loadGold(), loadStocks(), loadProperties(), loadBankAccounts(),
+                loadLoans(), loadBonds(), loadMutualFunds(), loadCreditCards()
             ]);
-
-            const gold = (goldRes.data || []).map((item: any) => ({
-                id: item.id,
-                ornamentName: item.name,
-                grams: parseFloat(item.weightGrams),
-                pricePerGram: parseFloat(item.purchasePrice),
-                totalValue: parseFloat(item.currentValue),
-                purchaseDate: item.purchaseDate || new Date().toISOString(),
-                purity: item.notes?.split(' ')[0] || '24K',
-                imageUrl: item.imageUrl
-            }));
-
-            const stocks = (stocksRes.data || []).map((item: any) => ({
-                id: item.id,
-                market: item.exchange,
-                stockName: item.name,
-                units: parseFloat(item.quantity),
-                unitPrice: parseFloat(item.currentPrice),
-                totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
-                purchaseDate: item.createdAt
-            }));
-
-            const property = (propertyRes.data || []).map((item: any) => ({
-                id: item.id,
-                propertyName: item.name,
-                location: item.location,
-                address: item.address || '',
-                purchasePrice: parseFloat(item.purchasePrice),
-                currentValue: parseFloat(item.currentValue),
-                propertyType: item.propertyType,
-                purchaseDate: item.purchaseDate || new Date().toISOString(),
-                area: item.area ? parseFloat(item.area) : 0,
-                imageUrl: item.imageUrl
-            }));
-
-            // const bankAccounts = bankAccountsRes.data || [];
-
-            const loans = (loansRes.data || []).map((item: any) => ({
-                id: item.id,
-                lenderName: item.lenderName,
-                linkedProperty: item.loanType,
-                originalAmount: parseFloat(item.principal),
-                outstandingBalance: parseFloat(item.outstanding),
-                emiAmount: parseFloat(item.emiAmount),
-                interestRate: parseFloat(item.interestRate),
-                loanStartDate: item.startDate,
-                loanEndDate: item.endDate,
-                notes: item.notes || '',
-                emiDueDate: 1 // Default if not in backend
-            }));
-
-            const bonds = (bondsRes.data || []).map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                issuer: item.issuer,
-                faceValue: parseFloat(item.faceValue),
-                currentValue: parseFloat(item.currentValue),
-                interestRate: parseFloat(item.interestRate),
-                maturityDate: item.maturityDate,
-                notes: item.notes
-            }));
-
-            const mutualFunds = (mutualFundsRes.data || []).map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                fundHouse: item.fundHouse,
-                units: parseFloat(item.units),
-                avgNav: parseFloat(item.avgNav),
-                currentNav: parseFloat(item.currentNav),
-                currentValue: parseFloat(item.currentValue),
-                notes: item.notes
-            }));
-
-            // For now wallets are bank accounts of type 'Wallet'
-            const allBankRes = (bankAccountsRes.data || []).map((item: any) => ({
-                ...item,
-                balance: parseFloat(item.balance) || 0
-            }));
-            const bankAccounts = allBankRes.filter((a: any) => a.accountType !== 'Wallet');
-            const wallets = allBankRes.filter((a: any) => a.accountType === 'Wallet');
-
-            const cards = (creditCardsRes.data || []).map((item: any) => ({
-                id: item.id,
-                cardName: item.cardName,
-                bankName: item.bankName,
-                creditLimit: parseFloat(item.creditLimit),
-                usedAmount: parseFloat(item.usedAmount),
-                dueDate: item.dueDate,
-                interestRate: item.interestRate,
-                notes: item.notes
-            }));
-
-            // Calculate totals
-            const goldTotal = gold.reduce((sum: number, item: any) => sum + (item.totalValue || 0), 0);
-            const bondsTotal = bonds.reduce((sum: number, item: any) => sum + (parseFloat(item.currentValue) || parseFloat(item.faceValue) || 0), 0);
-            const stocksTotal = stocks.reduce((sum: number, item: any) => sum + (item.totalValue || 0), 0);
-            const propertyTotal = property.reduce((sum: number, item: any) => sum + (item.currentValue || 0), 0);
-            const mutualFundsTotal = mutualFunds.reduce((sum: number, item: any) => sum + (parseFloat(item.currentValue) || 0), 0);
-            const bankTotal = bankAccounts.reduce((sum: number, item: any) => sum + (parseFloat(item.balance) || 0), 0);
-            const walletTotal = wallets.reduce((sum: number, item: any) => sum + (parseFloat(item.balance) || 0), 0);
-            const cashTotal = bankTotal + walletTotal;
-            const loansTotal = loans.reduce((sum: number, item: any) => sum + (item.outstandingBalance || 0), 0);
-            const cardsTotal = cards.reduce((sum: number, item: any) => sum + (parseFloat(item.usedAmount) || 0), 0);
-
-            const totalAssets = goldTotal + bondsTotal + stocksTotal + propertyTotal + mutualFundsTotal + cashTotal;
-            const totalLiabilities = loansTotal + cardsTotal;
-            const netWorth = totalAssets - totalLiabilities;
-
-            setData({
-                assets: {
-                    gold: { items: gold, totalValue: goldTotal },
-                    bonds: { items: bonds, totalValue: bondsTotal },
-                    stocks: { items: stocks, totalValue: stocksTotal },
-                    property: { items: property, totalValue: propertyTotal },
-                    mutualFunds: { items: mutualFunds, totalValue: mutualFundsTotal },
-                    cash: {
-                        bankAccounts,
-                        wallets,
-                        totalBank: bankTotal,
-                        totalWallet: walletTotal,
-                        totalCash: cashTotal
-                    }
-                },
-                liabilities: {
-                    loans: { items: loans, totalValue: loansTotal },
-                    creditCards: { items: cards, totalValue: cardsTotal }
-                },
-                totalAssets,
-                totalLiabilities,
-                netWorth,
-                lastUpdated: new Date().toISOString()
-            });
-
-            // Update active goal with current net worth using user-scoped key
-            if (userId) {
-                const activeGoalKey = `activeGoal_${userId}`;
-                const activeGoal = localStorage.getItem(activeGoalKey);
-                if (activeGoal) {
-                    try {
-                        const goal = JSON.parse(activeGoal);
-                        goal.currentNetWorth = netWorth;
-                        localStorage.setItem(activeGoalKey, JSON.stringify(goal));
-                    } catch (e) {
-                        console.error('Error updating active goal', e);
-                    }
-                }
-            }
         } catch (error) {
             console.error('Error loading financial data:', error);
         } finally {
@@ -310,9 +290,8 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         loadData();
-    }, []); // Initial load
+    }, []);
 
-    // Watch for user changes (login/logout)
     useEffect(() => {
         const checkUserChange = () => {
             const savedUser = localStorage.getItem('user');
@@ -321,98 +300,39 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             if (savedUser && token) {
                 try {
                     const user = JSON.parse(savedUser);
-                    const userId = user.id;
-
-                    // If user changed, reload data
-                    if (userId !== currentUserId) {
-                        console.log('[NetWorth] User changed, reloading data...', { old: currentUserId, new: userId });
+                    if (user.id !== currentUserId) {
                         loadData();
                     }
-                } catch (e) {
-                    console.error('Error checking user change:', e);
-                }
+                } catch (e) { }
             } else if (currentUserId !== null && !token) {
-                // User logged out, reset data
-                console.log('[NetWorth] User logged out, resetting data...');
                 resetNetWorth();
             }
         };
 
-        // Check on interval (every 500ms)
-        const interval = setInterval(checkUserChange, 500);
-
+        const interval = setInterval(checkUserChange, 1000);
         return () => clearInterval(interval);
     }, [currentUserId]);
 
-    const updateGold = async (items: AssetItem[]) => {
-        // Gold is now stored in the database - no localStorage needed
-        await loadData();
-    };
-
-    const updateBonds = async (items: AssetItem[]) => {
-        // Bonds are now stored in the database
-        await loadData();
-    };
-
-    const updateStocks = async (items: AssetItem[]) => {
-        // Stocks are now stored in the database
-        await loadData();
-    };
-
-    const updateProperty = async (items: AssetItem[]) => {
-        // Property is now stored in the database
-        await loadData();
-    };
-
-    const updateMutualFunds = async (items: AssetItem[]) => {
-        // Mutual funds are now stored in the database
-        await loadData();
-    };
-
-    const updateCash = async (bankAccounts: AssetItem[], wallets: AssetItem[]) => {
-        // Bank accounts and wallets are now stored in the database
-        await loadData();
-    };
-
-    const updateLoans = async (items: AssetItem[]) => {
-        // Loans are now stored in the database
-        await loadData();
-    };
-
-    const updateCreditCards = async (items: AssetItem[]) => {
-        // Credit cards are now stored in the database
-        await loadData();
-    };
-
-    const refreshNetWorth = async () => {
-        await loadData();
-    };
+    const updateGold = async () => await loadGold();
+    const updateBonds = async () => await loadBonds();
+    const updateStocks = async () => await loadStocks();
+    const updateProperty = async () => await loadProperties();
+    const updateMutualFunds = async () => await loadMutualFunds();
+    const updateCash = async () => await loadBankAccounts();
+    const updateLoans = async () => await loadLoans();
+    const updateCreditCards = async () => await loadCreditCards();
+    const refreshNetWorth = async () => await loadData();
 
     const resetNetWorth = () => {
-        setData({
-            assets: {
-                gold: { items: [], totalValue: 0 },
-                bonds: { items: [], totalValue: 0 },
-                stocks: { items: [], totalValue: 0 },
-                property: { items: [], totalValue: 0 },
-                mutualFunds: { items: [], totalValue: 0 },
-                cash: {
-                    bankAccounts: [],
-                    wallets: [],
-                    totalBank: 0,
-                    totalWallet: 0,
-                    totalCash: 0
-                }
-            },
-            liabilities: {
-                loans: { items: [], totalValue: 0 },
-                creditCards: { items: [], totalValue: 0 }
-            },
-            totalAssets: 0,
-            totalLiabilities: 0,
-            netWorth: 0,
-            lastUpdated: new Date().toISOString()
-        });
+        setGoldItems([]);
+        setBondItems([]);
+        setStockItems([]);
+        setPropertyItems([]);
+        setMutualFundItems([]);
+        setBankAccounts([]);
+        setWallets([]);
+        setLoanItems([]);
+        setCreditCardItems([]);
         setCurrentUserId(null);
     };
 
