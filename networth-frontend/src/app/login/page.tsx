@@ -20,8 +20,8 @@ export default function LoginPage() {
 
         try {
             const response = await authApi.login({ email, password });
-            const { token, user } = response.data;
-            login(token, user);
+            const { access_token, user } = response.data;
+            login(access_token, user);
             // Context login will handle the redirect
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || 'Invalid credentials');
