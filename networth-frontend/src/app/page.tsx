@@ -228,6 +228,20 @@ export default function Dashboard() {
     const requiredMonthlyIncrease = remainingMonths > 0 ? remainingAmount / remainingMonths : 0;
     const expectedProgress = totalDays > 0 ? (elapsedDays / totalDays) * 100 : 0;
 
+    // DEBUG: Log all totals to identify the 20M culprit
+    console.log('Networth Debug Totals:', {
+        gold: networthData.assets.gold.totalValue,
+        stocks: networthData.assets.stocks.totalValue,
+        property: networthData.assets.property.totalValue,
+        mutualFunds: networthData.assets.mutualFunds.totalValue,
+        bonds: networthData.assets.bonds.totalValue,
+        cash: networthData.assets.cash.totalCash,
+        loans: networthData.liabilities.loans.totalValue,
+        cards: networthData.liabilities.creditCards.totalValue,
+        totalAssets: networthData.totalAssets,
+        netWorth: networthData.netWorth
+    });
+
     let goalStatus: 'ahead' | 'ontrack' | 'behind' = 'ontrack';
     if (progressPercentage > expectedProgress + 5) goalStatus = 'ahead';
     else if (progressPercentage < expectedProgress - 5) goalStatus = 'behind';
