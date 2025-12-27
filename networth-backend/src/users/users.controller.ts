@@ -26,7 +26,15 @@ export class UsersController {
   @Get()
   @Roles(Role.SUPER_ADMIN)
   async getAllUsers(): Promise<UserResponseDto[]> {
-    return this.usersService.findAll();
+    console.log('[UsersController] getAllUsers called');
+    try {
+      const users = await this.usersService.findAll();
+      console.log(`[UsersController] Returning ${users.length} users`);
+      return users;
+    } catch (error) {
+      console.error('[UsersController] Error fetching users:', error);
+      throw error;
+    }
   }
 
   @Get(':id')
