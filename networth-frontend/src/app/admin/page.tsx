@@ -18,7 +18,7 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
 
     // Form State
-    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'USER' });
+    const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', password: '', role: 'USER' });
 
     // Edit User State
     const [editingUser, setEditingUser] = useState<any>(null);
@@ -82,14 +82,14 @@ export default function AdminPage() {
         setIsLoading(true);
         try {
             await apiClient.post('/users', {
-                firstName: newUser.name.split(' ')[0] || newUser.name,
-                lastName: newUser.name.split(' ').slice(1).join(' ') || '',
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
                 email: newUser.email,
                 password: newUser.password,
                 role: newUser.role
             });
-            setMessage(`✅ Success: User ${newUser.name} created!`);
-            setNewUser({ name: '', email: '', password: '', role: 'USER' });
+            setMessage(`✅ Success: User ${newUser.firstName} created!`);
+            setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'USER' });
             fetchUsers();
         } catch (error: any) {
             setMessage(`❌ Error: ${error.response?.data?.message || 'Failed to create user.'}`);
@@ -124,10 +124,7 @@ export default function AdminPage() {
     };
 
     const handleEditUser = (user: any) => {
-        setEditingUser({
-            ...user,
-            name: user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName
-        });
+        setEditingUser({ ...user });
         setShowEditModal(true);
     };
 
@@ -139,10 +136,11 @@ export default function AdminPage() {
 
         try {
             await apiClient.put(`/users/${editingUser.id}`, {
-                firstName: editingUser.name?.split(' ')[0] || editingUser.firstName,
-                lastName: editingUser.name?.split(' ').slice(1).join(' ') || '',
+                firstName: editingUser.firstName,
+                lastName: editingUser.lastName,
                 email: editingUser.email,
-                role: editingUser.role
+                role: editingUser.role,
+                isActive: editingUser.isActive
             });
             setMessage(`✅ Success: User updated!`);
             setShowEditModal(false);
@@ -152,6 +150,18 @@ export default function AdminPage() {
             setMessage(`❌ Error: ${error.response?.data?.message || 'Failed to update user.'}`);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (user: any) => {
+        try {
+            await apiClient.put(`/users/${user.id}`, {
+                isActive: !user.isActive
+            });
+            setMessage(`✅ Status updated for ${user.firstName}`);
+            fetchUsers();
+        } catch (error: any) {
+            setMessage(`❌ Failed to update status: ${error.response?.data?.message || 'Error'}`);
         }
     };
 
