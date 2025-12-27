@@ -209,14 +209,21 @@ export default function Dashboard() {
     // Goal tracking calculations - use real-time net worth from context
     const currentNetWorth = networthData.netWorth;
     const goalNetWorth = parseFloat(activeGoal?.goalNetWorth) || 0;
-    const targetDate = activeGoal?.targetDate ? new Date(activeGoal.targetDate) : new Date();
-    const startDate = new Date();
+    const targetDate = activeGoal?.targetDate ? new Date(activeGoal.targetDate) : null;
+
+    // Use goal creation date as start, or 30 days ago as fallback
+    const startDate = activeGoal?.createdAt
+        ? new Date(activeGoal.createdAt)
+        : new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)); // 30 days ago fallback
 
     const progressPercentage = goalNetWorth > 0 ? (currentNetWorth / goalNetWorth) * 100 : 0;
     const remainingAmount = Math.max(0, goalNetWorth - currentNetWorth);
-    const totalDays = Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const elapsedDays = 0;
-    const remainingDays = Math.max(0, totalDays - elapsedDays);
+
+    // Calculate days from now to target date
+    const now = new Date();
+    const totalDays = targetDate ? Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const elapsedDays = targetDate ? Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    const remainingDays = targetDate ? Math.max(0, Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
     const remainingMonths = Math.ceil(remainingDays / 30);
     const requiredMonthlyIncrease = remainingMonths > 0 ? remainingAmount / remainingMonths : 0;
     const expectedProgress = totalDays > 0 ? (elapsedDays / totalDays) * 100 : 0;
