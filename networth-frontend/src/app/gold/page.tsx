@@ -343,6 +343,7 @@ export default function GoldPage() {
                                         <table className="w-full">
                                             <thead>
                                                 <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                                                    <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Image</th>
                                                     <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Item</th>
                                                     <th className="px-8 py-5 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Purity</th>
                                                     <th className="px-8 py-5 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Weight</th>
@@ -354,25 +355,25 @@ export default function GoldPage() {
                                                 {ornaments.map((ornament) => (
                                                     <tr key={ornament.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors group">
                                                         <td className="px-8 py-5">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="relative">
-                                                                    {ornament.imageUrl ? (
-                                                                        <img
-                                                                            src={ornament.imageUrl}
-                                                                            alt={ornament.ornamentName}
-                                                                            className="w-14 h-14 object-cover rounded-2xl border-2 border-slate-100 dark:border-slate-700 cursor-pointer hover:scale-105 transition-transform"
-                                                                            onClick={() => { setLightboxImages([ornament.imageUrl!]); setLightboxOpen(true); }}
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-2xl border-2 border-amber-100 dark:border-amber-900/30">
-                                                                            🏆
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="font-bold text-slate-900 dark:text-white text-lg">{ornament.ornamentName}</div>
-                                                                    <div className="text-xs text-slate-400 mt-0.5">Purchased: {new Date(ornament.purchaseDate).toLocaleDateString()}</div>
-                                                                </div>
+                                                            <div className="relative">
+                                                                {ornament.imageUrl ? (
+                                                                    <img
+                                                                        src={ornament.imageUrl}
+                                                                        alt={ornament.ornamentName}
+                                                                        className="w-16 h-16 object-cover rounded-2xl border-2 border-slate-100 dark:border-slate-700 cursor-pointer hover:scale-110 transition-transform shadow-sm"
+                                                                        onClick={() => { setLightboxImages([ornament.imageUrl!]); setLightboxOpen(true); }}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-2xl border-2 border-amber-100 dark:border-amber-900/30">
+                                                                        🏆
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-5">
+                                                            <div>
+                                                                <div className="font-bold text-slate-900 dark:text-white text-lg">{ornament.ornamentName}</div>
+                                                                <div className="text-xs text-slate-400 mt-0.5">Purchased: {new Date(ornament.purchaseDate).toLocaleDateString()}</div>
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-5 text-center">
