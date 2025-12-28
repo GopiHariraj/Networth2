@@ -13,6 +13,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Net Worth Tracker",
     description: "Personal finance and net worth tracking application",
+    icons: {
+        icon: '/favicon.png',
+    },
 };
 
 export default function RootLayout({

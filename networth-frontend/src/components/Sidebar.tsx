@@ -55,8 +55,10 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
             `}>
                 {/* Logo */}
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0">E</div>
-                    {!isCollapsed && <span className="font-bold text-xl text-slate-900 dark:text-white">E-Daily</span>}
+                    <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+                        <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                    </div>
+                    {!isCollapsed && <span className="font-bold text-xl text-slate-900 dark:text-white">Net Worth</span>}
                 </div>
 
                 {/* Desktop Collapse Toggle */}
