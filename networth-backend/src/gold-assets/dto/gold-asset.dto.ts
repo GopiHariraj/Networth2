@@ -26,6 +26,10 @@ export class CreateGoldAssetDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 }
 
 export class UpdateGoldAssetDto {
@@ -49,4 +53,8 @@ export class UpdateGoldAssetDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 }

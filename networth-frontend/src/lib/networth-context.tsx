@@ -142,7 +142,11 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             pricePerGram: parseFloat(item.purchasePrice),
             totalValue: parseFloat(item.currentValue),
             purchaseDate: item.purchaseDate || new Date().toISOString(),
-            purity: item.notes?.split(' ')[0] || '24K',
+            purity: (() => {
+                const n = item.notes || '';
+                if (n.startsWith('Purity:')) return n.split(/[\s\n]+/)[1] || '24K';
+                return n.split(/[\s\n]+/)[0] || '24K';
+            })(),
             imageUrl: item.imageUrl
         }));
         const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);

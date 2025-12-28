@@ -157,6 +157,7 @@ model GoldAsset {
   purchaseDate  DateTime?
   currentValue  Decimal  @db.Decimal(15, 2) // Updated manually or via API
   notes         String?  @db.Text
+  imageUrl      String?  @db.LongText
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

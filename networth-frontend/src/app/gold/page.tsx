@@ -128,7 +128,8 @@ export default function GoldPage() {
                 purchasePrice: totalVal,
                 purchaseDate: new Date(formData.purchaseDate).toISOString(),
                 currentValue: totalVal,
-                notes: `Purity: ${formData.purity}${formData.imageUrl ? `\nImage: ${formData.imageUrl}` : ''}`
+                notes: formData.purity,
+                imageUrl: formData.imageUrl
             };
 
             if (editingId) {
