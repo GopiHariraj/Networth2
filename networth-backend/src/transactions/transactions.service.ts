@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { OpenAIService } from '../openai/openai.service';
+import { GeminiService } from '../common/openai/gemini.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GoldAssetsService } from '../gold-assets/gold-assets.service';
 import { StockAssetsService } from '../stock-assets/stock-assets.service';
@@ -9,7 +9,7 @@ import { StockAssetsService } from '../stock-assets/stock-assets.service';
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
-    private openaiService: OpenAIService,
+    private geminiService: GeminiService,
     @Inject(forwardRef(() => GoldAssetsService))
     private goldAssetsService: GoldAssetsService,
     @Inject(forwardRef(() => StockAssetsService))
@@ -32,7 +32,7 @@ export class TransactionsService {
   }
 
   async parseAndCreate(userId: string, smsText: string) {
-    const parsed = await this.openaiService.parseSMS(smsText);
+    const parsed = await this.geminiService.parseSMSTransaction(smsText);
 
     // Route based on transaction type
     switch (parsed.type) {
@@ -188,5 +188,38 @@ export class TransactionsService {
       pieChartData,
       recentTransactions,
     };
+  }
+
+  async analyzeReceipt(userId: string, imageBase64: string) {
+    try {
+      const parsed = await this.geminiService.analyzeReceiptImage(imageBase64);
+
+      // Create expense transaction from receipt data
+      const expense = await this.prisma.expense.create({
+        data: {
+          date: parsed.date ? new Date(parsed.date) : new Date(),
+          amount: parsed.total,
+          currency: parsed.currency || 'AED',
+          category: parsed.category || 'Misc',
+          merchant: parsed.merchant || 'Unknown',
+          paymentMethod: parsed.paymentMethod || 'cash',
+          recurrence: 'one-time',
+          notes: `Receipt items: ${parsed.items?.map((i: any) => i.name).join(', ') || 'N/A'}`,
+          userId,
+          source: 'gemini_vision',
+          periodTag: 'monthly',
+        },
+      });
+
+      return {
+        success: true,
+        type: 'EXPENSE',
+        expense,
+        receiptData: parsed,
+      };
+    } catch (error) {
+      console.error('Receipt analysis error:', error);
+      throw error;
+    }
   }
 }

@@ -1,14 +1,14 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
-import { OpenAIModule } from '../openai/openai.module';
+import { GeminiModule } from '../common/openai/gemini.module';
 import { PrismaModule } from '../common/prisma/prisma.module';
 import { GoldAssetsModule } from '../gold-assets/gold-assets.module';
 import { StockAssetsModule } from '../stock-assets/stock-assets.module';
 
 @Module({
   imports: [
-    OpenAIModule,
+    GeminiModule,
     PrismaModule,
     forwardRef(() => GoldAssetsModule),
     forwardRef(() => StockAssetsModule),
@@ -17,4 +17,4 @@ import { StockAssetsModule } from '../stock-assets/stock-assets.module';
   providers: [TransactionsService],
   exports: [TransactionsService],
 })
-export class TransactionsModule {}
+export class TransactionsModule { }

@@ -133,4 +133,164 @@ Return ONLY the JSON object, no extra text or markdown.
             ],
         };
     }
+
+    async parseSMSTransaction(smsText: string): Promise<any> {
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+
+            if (!apiKey || !this.model) {
+                console.log('Gemini API key not found, using mock SMS parser');
+                return this.mockParseSMS(smsText);
+            }
+
+            const prompt = `
+Parse this financial transaction SMS and extract details. Return ONLY valid JSON.
+
+Transaction types: GOLD, STOCK, BOND, EXPENSE, BANK_DEPOSIT
+
+Return format:
+{
+  "type": "GOLD" | "STOCK" | "BOND" | "EXPENSE" | "BANK_DEPOSIT",
+  "amount": number,
+  "currency": "AED" | "USD",
+  "date": "YYYY-MM-DD",
+  
+  // For GOLD:
+  "weight": number (in grams),
+  "purity": "22K" | "24K" | "18K",
+  "ornamentName": "string",
+  
+  // For STOCK:
+  "stockSymbol": "string",
+  "units": number,
+  "unitPrice": number,
+  "market": "NASDAQ" | "NYSE" | "DFM",
+  
+  // For BOND:
+  "bondName": "string",
+  "interestRate": number,
+  "maturityDate": "YYYY-MM-DD",
+  
+  // For EXPENSE:
+  "merchant": "string",
+  "category": "string",
+  
+  "confidence": 0.0-1.0
+}
+
+SMS: "${smsText}"
+
+Return ONLY the JSON object.
+`;
+
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            let jsonText = response.text();
+
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+            return JSON.parse(jsonText);
+        } catch (error) {
+            console.error('Gemini SMS parse error:', error);
+            return this.mockParseSMS(smsText);
+        }
+    }
+
+    async analyzeReceiptImage(imageBase64: string): Promise<any> {
+        try {
+            const apiKey = process.env.GEMINI_API_KEY;
+
+            if (!apiKey || !this.genAI) {
+                throw new Error('Gemini API key required for image analysis');
+            }
+
+            const visionModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+            const prompt = `
+Analyze this receipt image and extract all transaction details. Return ONLY valid JSON.
+
+Extract:
+{
+  "merchant": "store name",
+  "date": "YYYY-MM-DD",
+  "total": number,
+  "currency": "AED" | "USD",
+  "items": [
+    {
+      "name": "item name",
+      "quantity": number,
+      "price": number
+    }
+  ],
+  "category": "Groceries" | "Restaurants" | "Shopping" | etc.,
+  "paymentMethod": "cash" | "card",
+  "confidence": 0.0-1.0
+}
+
+Return ONLY the JSON object.
+`;
+
+            const imageParts = {
+                inlineData: {
+                    data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+                    mimeType: 'image/jpeg'
+                }
+            };
+
+            const result = await visionModel.generateContent([prompt, imageParts]);
+            const response = await result.response;
+            let jsonText = response.text();
+
+            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+            return JSON.parse(jsonText);
+        } catch (error) {
+            console.error('Gemini Vision error:', error);
+            throw new Error('Receipt analysis failed. Please ensure image is clear and try again.');
+        }
+    }
+
+    private mockParseSMS(smsText: string): any {
+        const lowerText = smsText.toLowerCase();
+
+        // Detect transaction type
+        let type = 'EXPENSE';
+        if (lowerText.includes('gold') || lowerText.includes('chain') || lowerText.includes('ring') || lowerText.includes('bracelet')) {
+            type = 'GOLD';
+        } else if (lowerText.includes('share') || lowerText.includes('stock') || lowerText.includes('aapl') || lowerText.includes('googl')) {
+            type = 'STOCK';
+        } else if (lowerText.includes('bond')) {
+            type = 'BOND';
+        }
+
+        // Extract amount
+        const amountMatch = smsText.match(/(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(AED|USD|\$)?/i);
+        const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+        const currency = amountMatch?.[2]?.toUpperCase().replace('$', 'USD') || 'AED';
+
+        const result: any = {
+            type,
+            amount,
+            currency,
+            date: new Date().toISOString().split('T')[0],
+            confidence: 0.5
+        };
+
+        if (type === 'GOLD') {
+            const weightMatch = smsText.match(/(\d+(?:\.\d+)?)\s*g/i);
+            const purityMatch = smsText.match(/(22K|24K|18K)/i);
+            result.weight = weightMatch ? parseFloat(weightMatch[1]) : 10;
+            result.purity = purityMatch ? purityMatch[1] : '22K';
+            result.ornamentName = 'Gold Item';
+        } else if (type === 'STOCK') {
+            const symbolMatch = smsText.match(/([A-Z]{1,5})/);
+            const unitsMatch = smsText.match(/(\d+)\s*share/i);
+            result.stockSymbol = symbolMatch ? symbolMatch[1] : 'AAPL';
+            result.units = unitsMatch ? parseInt(unitsMatch[1]) : 1;
+            result.unitPrice = result.amount / (result.units || 1);
+            result.market = 'NASDAQ';
+        }
+
+        return result;
+    }
 }
