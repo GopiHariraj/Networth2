@@ -3,10 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useCurrency, CURRENCIES } from '../../lib/currency-context';
 import { useNetWorth } from '../../lib/networth-context';
+import { useAuth } from '../../lib/auth-context';
+import apiClient from '../../lib/api/client';
 
 export default function SettingsPage() {
     const { currency, setCurrency } = useCurrency();
     const { data: networthData } = useNetWorth();
+    const { user } = useAuth();
     const [settings, setSettings] = useState({
         notifications: true,
         darkMode: false,
@@ -54,63 +57,98 @@ export default function SettingsPage() {
         }
     };
 
-    // Export all data as backup
-    const handleExportData = () => {
-        const backup = {
-            version: '1.0',
-            timestamp: new Date().toISOString(),
-            appName: 'Net Worth Tracker',
-            data: {
-                activeGoal: localStorage.getItem('activeGoal'),
-                appSettings: localStorage.getItem('appSettings'),
-                currency: localStorage.getItem('currency'),
-                // Add all other localStorage keys
-                ...Object.keys(localStorage).reduce((acc, key) => {
-                    acc[key] = localStorage.getItem(key);
-                    return acc;
-                }, {} as Record<string, string | null>)
-            }
-        };
+    // Export user-specific data as backup
+    const handleExportData = async () => {
+        if (!user?.id) {
+            alert('❌ Please login to export your data');
+            return;
+        }
 
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `networth-backup-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('✅ Backup downloaded successfully!');
+        try {
+            // Fetch all user's financial data from API
+            const [assets, liabilities, transactions, goals] = await Promise.all([
+                apiClient.get('/bank-accounts'),
+                apiClient.get('/credit-cards'),
+                apiClient.get('/transactions'),
+                apiClient.get('/goals')
+            ]);
+
+            const backup = {
+                version: '2.0',
+                timestamp: new Date().toISOString(),
+                appName: 'Net Worth Tracker',
+                userId: user.id,
+                userEmail: user.email,
+                userData: {
+                    // User-specific localStorage
+                    preferredCurrency: localStorage.getItem(`preferredCurrency_${user.id}`),
+                    activeGoal: localStorage.getItem(`activeGoal_${user.id}`),
+                    // Financial data from API
+                    bankAccounts: assets.data || [],
+                    creditCards: liabilities.data || [],
+                    transactions: transactions.data || [],
+                    goals: goals.data || []
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `networth-backup-${user.email}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('✅ Backup downloaded successfully!');
+        } catch (error) {
+            console.error('Backup error:', error);
+            alert('❌ Failed to create backup. Please try again.');
+        }
     };
 
-    // Import data from backup file
+    // Import user-specific data from backup file
     const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        if (!user?.id) {
+            alert('❌ Please login to restore your data');
+            return;
+        }
+
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const backup = JSON.parse(e.target?.result as string);
 
-                // Validate format
-                if (backup.version && backup.data) {
-                    // Clear existing data
-                    const confirmRestore = window.confirm(
-                        '⚠️ This will replace all your current data. Continue?'
-                    );
-
-                    if (confirmRestore) {
-                        // Restore data
-                        Object.keys(backup.data).forEach(key => {
-                            if (backup.data[key] !== null) {
-                                localStorage.setItem(key, backup.data[key]);
-                            }
-                        });
-                        alert('✅ Data restored successfully! Page will reload.');
-                        window.location.reload();
-                    }
-                } else {
+                // Validate format and version
+                if (!backup.version || !backup.userData) {
                     alert('❌ Invalid backup file format');
+                    return;
+                }
+
+                // Warn if backup is from a different user
+                if (backup.userId && backup.userId !== user.id) {
+                    const confirmDifferentUser = window.confirm(
+                        `⚠️ This backup is from ${backup.userEmail || 'another user'}. Your current data will be replaced. Continue?`
+                    );
+                    if (!confirmDifferentUser) return;
+                }
+
+                const confirmRestore = window.confirm(
+                    '⚠️ This will replace your current data. Continue?'
+                );
+
+                if (confirmRestore) {
+                    // Restore user-specific localStorage
+                    if (backup.userData.preferredCurrency) {
+                        localStorage.setItem(`preferredCurrency_${user.id}`, backup.userData.preferredCurrency);
+                    }
+                    if (backup.userData.activeGoal) {
+                        localStorage.setItem(`activeGoal_${user.id}`, backup.userData.activeGoal);
+                    }
+
+                    alert('✅ Data restored successfully! Page will reload.');
+                    window.location.reload();
                 }
             } catch (error) {
                 alert('❌ Failed to read backup file');

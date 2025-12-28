@@ -122,23 +122,21 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                         <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
                             {/* @ts-ignore */}
                             {user?.role === 'SUPER_ADMIN' && (
-                                <>
-                                    <Link
-                                        href="/admin"
-                                        onClick={() => setIsMenuOpen(false)}
-                                        className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
-                                    >
-                                        🛡️ Admin Dashboard
-                                    </Link>
-                                    <Link
-                                        href="/settings"
-                                        onClick={() => setIsMenuOpen(false)}
-                                        className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
-                                    >
-                                        ⚙️ Settings
-                                    </Link>
-                                </>
+                                <Link
+                                    href="/admin"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
+                                >
+                                    🛡️ Admin Dashboard
+                                </Link>
                             )}
+                            <Link
+                                href="/settings"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
+                            >
+                                ⚙️ Settings
+                            </Link>
                             <button
                                 onClick={logout}
                                 className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
