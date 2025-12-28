@@ -19,6 +19,7 @@ export default function GoalsPage() {
         cashAndBank: '',
         stocks: '',
         bonds: '',
+        monthlyExpense: '',
     });
 
     const [activeGoal, setActiveGoal] = useState({
@@ -57,6 +58,7 @@ export default function GoalsPage() {
                 const cashGoal = fetchedGoals.find((g: any) => g.type === 'CASH');
                 const bondsGoal = fetchedGoals.find((g: any) => g.type === 'BONDS');
                 const incomeGoal = fetchedGoals.find((g: any) => g.type === 'INCOME');
+                const expenseGoal = fetchedGoals.find((g: any) => g.type === 'EXPENSE');
 
                 setGoals(prev => ({
                     ...prev,
@@ -66,6 +68,7 @@ export default function GoalsPage() {
                     cashAndBank: cashGoal?.targetAmount.toString() || '',
                     bonds: bondsGoal?.targetAmount.toString() || '',
                     monthlyIncome: incomeGoal?.targetAmount.toString() || '',
+                    monthlyExpense: expenseGoal?.targetAmount.toString() || '',
                 }));
             }
         } catch (e) {
@@ -143,6 +146,7 @@ export default function GoalsPage() {
                 { type: 'CASH', value: goals.cashAndBank, name: 'Cash Target' },
                 { type: 'BONDS', value: goals.bonds, name: 'Bonds Target' },
                 { type: 'INCOME', value: goals.monthlyIncome, name: 'Income Target' },
+                { type: 'EXPENSE', value: goals.monthlyExpense, name: 'Monthly Expense Target' },
             ];
 
             const existingGoalsRes = await financialDataApi.goals.getAll();
@@ -385,6 +389,34 @@ export default function GoalsPage() {
                         </div>
                     </div>
 
+                    {/* Monthly Expense Goal */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-2xl">
+                                💸
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-900 dark:text-white">Monthly Expense</h3>
+                                <p className="text-sm text-slate-500">Maximum spending target</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Target Limit
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={goals.monthlyExpense}
+                                    onChange={(e) => handleChange('monthlyExpense', e.target.value)}
+                                    placeholder="e.g., 15000"
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 outline-none"
+                                />
+                                <span className="absolute right-4 top-3.5 text-slate-400 text-sm">{currency.code}/month</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 {/* Action Buttons */}
@@ -406,6 +438,7 @@ export default function GoalsPage() {
                             cashAndBank: '',
                             stocks: '',
                             bonds: '',
+                            monthlyExpense: '',
                         })}
                         className="px-8 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white font-medium rounded-xl transition-colors"
                     >
@@ -458,6 +491,13 @@ export default function GoalsPage() {
                                     <div className="text-2xl mb-1">📜</div>
                                     <div className="text-sm text-slate-600 dark:text-slate-400">Bonds</div>
                                     <div className="font-bold text-slate-900 dark:text-white">{currency.symbol} {parseInt(goals.bonds).toLocaleString()}</div>
+                                </div>
+                            )}
+                            {goals.monthlyExpense && (
+                                <div className="text-center p-3 bg-red-50 dark:bg-red-900/10 rounded-xl">
+                                    <div className="text-2xl mb-1">💸</div>
+                                    <div className="text-sm text-slate-600 dark:text-slate-400">Monthly Expense</div>
+                                    <div className="font-bold text-slate-900 dark:text-white">{currency.symbol} {parseInt(goals.monthlyExpense).toLocaleString()}</div>
                                 </div>
                             )}
                         </div>

@@ -16,46 +16,11 @@ export default function SettingsPage() {
         language: 'en'
     });
 
-    const [activeGoal, setActiveGoal] = useState({
-        goalNetWorth: '',
-        targetDate: '',
-        notes: ''
-    });
-
-    // Load active goal from localStorage
-    useEffect(() => {
-        const saved = localStorage.getItem('activeGoal');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                setActiveGoal(parsed);
-            } catch (e) {
-                console.error('Failed to load active goal', e);
-            }
-        }
-    }, []);
-
     const handleSaveSettings = () => {
         localStorage.setItem('appSettings', JSON.stringify(settings));
         alert('Settings saved successfully! ⚙️');
     };
 
-    // Save active goal to localStorage
-    const saveActiveGoal = () => {
-        if (activeGoal.goalNetWorth && activeGoal.targetDate) {
-            const goalData = {
-                ...activeGoal,
-                currentNetWorth: networthData.netWorth,
-                lastUpdated: new Date().toISOString()
-            };
-            localStorage.setItem('activeGoal', JSON.stringify(goalData));
-            // Trigger storage event for dashboard update
-            window.dispatchEvent(new Event('storage'));
-            alert('✅ Goal saved and synced to Dashboard!');
-        } else {
-            alert('⚠️ Please enter both Goal Net Worth and Target Date');
-        }
-    };
 
     // Export user-specific data as backup
     const handleExportData = async () => {
@@ -207,65 +172,6 @@ export default function SettingsPage() {
                                 💡 <strong>Tip:</strong> Export your data regularly to keep a backup of your financial information.
                             </p>
                         </div>
-                    </div>
-
-                    {/* Active Goal Management */}
-                    <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg border border-purple-500">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
-                                🎯
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-white">Active Net Worth Goal</h2>
-                                <p className="text-sm text-purple-100">Syncs to your dashboard</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium text-purple-100 mb-2">
-                                    Goal Net Worth ({currency.code})
-                                </label>
-                                <input
-                                    type="number"
-                                    value={activeGoal.goalNetWorth}
-                                    onChange={(e) => setActiveGoal({ ...activeGoal, goalNetWorth: e.target.value })}
-                                    placeholder="e.g., 5000000"
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-purple-100 mb-2">
-                                    Target Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={activeGoal.targetDate}
-                                    onChange={(e) => setActiveGoal({ ...activeGoal, targetDate: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-purple-100 mb-2">
-                                Notes (Optional)
-                            </label>
-                            <textarea
-                                value={activeGoal.notes}
-                                onChange={(e) => setActiveGoal({ ...activeGoal, notes: e.target.value })}
-                                placeholder="Add any notes about your goal..."
-                                rows={2}
-                                className="w-full px-4 py-3 rounded-xl border-2 border-purple-400 bg-white text-slate-900 focus:ring-2 focus:ring-white outline-none"
-                            />
-                        </div>
-
-                        <button
-                            onClick={saveActiveGoal}
-                            className="w-full px-6 py-3 bg-white text-purple-600 font-bold rounded-xl hover:bg-purple-50 transition-colors shadow-lg"
-                        >
-                            💾 Save Goal & Sync to Dashboard
-                        </button>
                     </div>
 
                     {/* Currency Settings */}
