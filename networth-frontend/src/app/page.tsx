@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth-context';
 import TransactionUpload from '../components/TransactionUpload';
 import ExpensePieChart from '../components/ExpensePieChart';
 import GoalProgress from '../components/dashboard/GoalProgress';
+import ExpenseGoalWidget from '../components/dashboard/ExpenseGoalWidget';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import PortfolioOverview from '../components/dashboard/PortfolioOverview';
 import {
@@ -105,6 +106,8 @@ export default function Dashboard() {
                         cashTotal: networthData.assets.cash.totalCash
                     }}
                 />
+
+                <ExpenseGoalWidget currency={currency} />
 
                 <div className="mb-8 bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-4">
