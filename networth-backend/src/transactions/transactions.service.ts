@@ -52,32 +52,44 @@ export class TransactionsService {
   }
 
   private async createGoldAsset(userId: string, parsed: any) {
-    // Create gold asset using GoldAssetsService
-    const goldData = {
-      name: parsed.ornamentName || 'Gold Item',
-      weightGrams: parsed.weight || 0,
-      purchasePrice: parsed.amount,
-      currentValue: parsed.amount,
-      purchaseDate: parsed.date.toISOString(),
-      notes: `${parsed.purity || '22K'} purity, from SMS`,
-    };
+    try {
+      // Create gold asset using GoldAssetsService
+      const goldData = {
+        name: parsed.ornamentName || 'Gold Item',
+        weightGrams: parsed.weight || 0,
+        purchasePrice: parsed.amount,
+        currentValue: parsed.amount,
+        purchaseDate: typeof parsed.date === 'string' ? parsed.date : new Date().toISOString().split('T')[0],
+        notes: `${parsed.purity || '22K'} purity, from SMS`,
+      };
 
-    return this.goldAssetsService.create(userId, goldData);
+      const result = await this.goldAssetsService.create(userId, goldData);
+      return { ...result, type: 'GOLD' };
+    } catch (error) {
+      console.error('Error creating gold asset:', error);
+      throw error;
+    }
   }
 
   private async createStockAsset(userId: string, parsed: any) {
-    // Create stock asset using StockAssetsService
-    const stockData = {
-      symbol: parsed.stockSymbol || 'UNKNOWN',
-      name: parsed.stockSymbol || 'Unknown Stock',
-      exchange: parsed.market || 'NASDAQ',
-      quantity: parsed.units || 1,
-      avgPrice: parsed.unitPrice || parsed.amount,
-      currentPrice: parsed.unitPrice || parsed.amount,
-      notes: 'Added via SMS',
-    };
+    try {
+      // Create stock asset using StockAssetsService
+      const stockData = {
+        symbol: parsed.stockSymbol || 'UNKNOWN',
+        name: parsed.stockSymbol || 'Unknown Stock',
+        exchange: parsed.market || 'NASDAQ',
+        quantity: parsed.units || 1,
+        avgPrice: parsed.unitPrice || parsed.amount,
+        currentPrice: parsed.unitPrice || parsed.amount,
+        notes: 'Added via SMS',
+      };
 
-    return this.stockAssetsService.create(userId, stockData);
+      const result = await this.stockAssetsService.create(userId, stockData);
+      return { ...result, type: 'STOCK' };
+    } catch (error) {
+      console.error('Error creating stock asset:', error);
+      throw error;
+    }
   }
 
   private async createBondAsset(userId: string, parsed: any) {
@@ -97,35 +109,42 @@ export class TransactionsService {
   }
 
   private async createExpenseTransaction(userId: string, parsed: any) {
-    // Find or create category
-    let categoryId = null;
-    if (parsed.category) {
-      const category = await this.prisma.category.findFirst({
-        where: { userId, name: parsed.category },
-      });
-      if (category) {
-        categoryId = category.id;
-      } else {
-        const newCat = await this.prisma.category.create({
-          data: {
-            userId,
-            name: parsed.category,
-            type: 'EXPENSE',
-          },
+    try {
+      // Find or create category
+      let categoryId = null;
+      if (parsed.category) {
+        const category = await this.prisma.category.findFirst({
+          where: { userId, name: parsed.category },
         });
-        categoryId = newCat.id;
+        if (category) {
+          categoryId = category.id;
+        } else {
+          const newCat = await this.prisma.category.create({
+            data: {
+              userId,
+              name: parsed.category,
+              type: 'EXPENSE',
+            },
+          });
+          categoryId = newCat.id;
+        }
       }
-    }
 
-    return this.create(userId, {
-      amount: parsed.amount,
-      merchant: parsed.merchant,
-      description: parsed.description,
-      source: 'SMS',
-      date: new Date().toISOString(),
-      categoryId: categoryId || undefined,
-      type: 'EXPENSE',
-    });
+      const result = await this.create(userId, {
+        amount: parsed.amount,
+        description: `${parsed.merchant || 'Expense'} - from SMS`,
+        merchant: parsed.merchant,
+        type: 'EXPENSE',
+        source: 'SMS',
+        date: new Date().toISOString(), // Keep date as it was in original
+        categoryId: categoryId || undefined,
+      });
+
+      return { ...result, type: 'EXPENSE', merchant: parsed.merchant, category: parsed.category };
+    } catch (error) {
+      console.error('Error creating expense transaction:', error);
+      throw error;
+    }
   }
 
   async findAll(userId: string) {
