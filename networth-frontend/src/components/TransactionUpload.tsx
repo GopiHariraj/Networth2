@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { transactionsApi } from '../lib/api/client';
 import Link from 'next/link';
 
 export default function TransactionUpload({ onTransactionAdded }: { onTransactionAdded: () => void }) {
+    const [activeTab, setActiveTab] = useState<'sms' | 'receipt'>('sms');
     const [smsText, setSmsText] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleAnalyze = async () => {
+    const handleAnalyzeSMS = async () => {
         if (!smsText.trim()) return;
         setLoading(true);
         try {
             const res = await transactionsApi.parseSMS(smsText);
             setResult(res.data);
-            // Auto refresh dashboard or show confirm
             onTransactionAdded();
             setSmsText('');
         } catch (error) {
@@ -22,6 +24,40 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleImageUpload = async (file: File) => {
+        if (!file) return;
+
+        setLoading(true);
+        try {
+            // Convert to base64
+            const base64 = await fileToBase64(file);
+            setImagePreview(base64);
+
+            // Send to backend
+            const res = await transactionsApi.analyzeReceipt(base64);
+            setResult({
+                ...res.data,
+                type: 'EXPENSE'
+            });
+            onTransactionAdded();
+            setImagePreview(null);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to analyze receipt. Please try again with a clearer image.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     };
 
     const getTypeBadge = (type: string) => {
@@ -52,29 +88,82 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 mb-8">
-            <h3 className="font-bold text-lg mb-4">Add Transaction via SMS</h3>
-            <textarea
-                className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
-                rows={3}
-                placeholder="Paste transaction SMS here... 
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">🤖 AI Transaction Assistant</h3>
+                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                    <button
+                        onClick={() => setActiveTab('sms')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'sms' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                    >
+                        📱 SMS
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('receipt')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'receipt' ? 'bg-white dark:bg-slate-700 shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
+                    >
+                        📸 Receipt
+                    </button>
+                </div>
+            </div>
+
+            {activeTab === 'sms' ? (
+                <div>
+                    <textarea
+                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400"
+                        rows={3}
+                        placeholder="Paste transaction SMS here... 
 Examples:
 • 'Bought 50g 22K gold chain at AED 10,000'
 • 'Bought 10 shares AAPL at $150'
 • 'Spent AED 500 at Carrefour'"
-                value={smsText}
-                onChange={(e) => setSmsText(e.target.value)}
-            />
-            <div className="flex justify-between items-center mt-4">
-                <p className="text-xs text-slate-500">AI will detect type and extract fields automatically.</p>
-                <button
-                    onClick={handleAnalyze}
-                    disabled={loading || !smsText}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                    {loading ? 'Analyzing...' : 'Analyze & Add'}
-                    {!loading && <span>✨</span>}
-                </button>
-            </div>
+                        value={smsText}
+                        onChange={(e) => setSmsText(e.target.value)}
+                    />
+                    <div className="flex justify-between items-center mt-4">
+                        <p className="text-xs text-slate-500">✨ AI will detect type and extract fields automatically.</p>
+                        <button
+                            onClick={handleAnalyzeSMS}
+                            disabled={loading || !smsText}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            {loading ? 'Analyzing...' : 'Analyze & Add'}
+                            {!loading && <span>✨</span>}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div>
+                    <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                    >
+                        {imagePreview ? (
+                            <div className="space-y-4">
+                                <img src={imagePreview} alt="Receipt" className="max-h-48 mx-auto rounded-lg" />
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Processing receipt...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="text-5xl">📷</div>
+                                <div>
+                                    <p className="font-semibold text-slate-900 dark:text-white">Upload Receipt Image</p>
+                                    <p className="text-sm text-slate-500 mt-1">Click to select or drag & drop</p>
+                                    <p className="text-xs text-slate-400 mt-2">Supports JPG, PNG (max 5MB)</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])}
+                    />
+                    <p className="text-xs text-slate-500 mt-2">🔒 Powered by Google Gemini Vision AI</p>
+                </div>
+            )}
+
             {result && (
                 <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center justify-between mb-3">
@@ -122,8 +211,8 @@ Examples:
                         {/* Expense-specific */}
                         {result.type === 'EXPENSE' && (
                             <>
-                                <p><b>Merchant:</b> {result.merchant || 'Unknown'}</p>
-                                <p><b>Category:</b> {result.category?.name || result.category || 'Uncategorized'}</p>
+                                <p><b>Merchant:</b> {result.merchant || result.receiptData?.merchant || 'Unknown'}</p>
+                                <p><b>Category:</b> {result.category?.name || result.category || result.receiptData?.category || 'Uncategorized'}</p>
                             </>
                         )}
                     </div>
