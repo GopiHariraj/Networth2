@@ -139,7 +139,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             id: item.id,
             ornamentName: item.name,
             grams: parseFloat(item.weightGrams),
-            pricePerGram: parseFloat(item.purchasePrice),
+            pricePerGram: parseFloat(item.currentValue) / parseFloat(item.weightGrams),
             totalValue: parseFloat(item.currentValue),
             purchaseDate: item.purchaseDate || new Date().toISOString(),
             purity: (() => {
