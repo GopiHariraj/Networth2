@@ -16,22 +16,43 @@ export class ExchangeRateService {
         try {
             const prompt = `Provide current real-time exchange rates from ${baseCurrency} to the following currencies: ${targetCurrencies.join(', ')}.
 
-Return ONLY a JSON object with currency codes as keys and exchange rates as values. Format: { "USD": 0.272, "EUR": 0.251, "GBP": 0.214, "INR": 22.74, "SAR": 1.02 }
+Return ONLY a valid JSON object with currency codes as keys and exchange rates as decimal numbers. 
+Example format: {"USD":0.272,"EUR":0.251,"GBP":0.214,"INR":22.74,"SAR":1.02}
 
-Do not include any explanatory text, only the JSON object.`;
+IMPORTANT: Return ONLY the JSON object, no explanatory text before or after.`;
 
+            console.log('[ExchangeRateService] Fetching rates from Gemini for', baseCurrency, 'to', targetCurrencies);
             const response = await this.geminiService.generateContent(prompt);
+            console.log('[ExchangeRateService] Gemini raw response:', response);
 
-            // Parse the JSON response
-            const jsonMatch = response.match(/\{[^}]+\}/);
+            // Try to extract JSON from response - handle markdown code blocks
+            let jsonText = response.trim();
+
+            // Remove markdown code blocks if present
+            jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+            // Find JSON object
+            const jsonMatch = jsonText.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
             if (!jsonMatch) {
-                throw new Error('Invalid response format from Gemini');
+                console.error('[ExchangeRateService] No valid JSON found in response');
+                throw new Error('Invalid response format from Gemini - no JSON object found');
             }
 
             const rates = JSON.parse(jsonMatch[0]);
+            console.log('[ExchangeRateService] Parsed rates:', rates);
+
+            // Validate rates object
+            if (typeof rates !== 'object' || Object.keys(rates).length === 0) {
+                throw new Error('Invalid rates object from Gemini');
+            }
 
             // Store in database
             for (const [currency, rate] of Object.entries(rates)) {
+                if (typeof rate !== 'number' || rate <= 0) {
+                    console.warn(`[ExchangeRateService] Invalid rate for ${currency}:`, rate);
+                    continue;
+                }
+
                 await this.prisma.exchangeRate.upsert({
                     where: {
                         baseCurrency_targetCurrency: {
@@ -53,9 +74,10 @@ Do not include any explanatory text, only the JSON object.`;
                 });
             }
 
+            console.log('[ExchangeRateService] Successfully stored rates in database');
             return { success: true, rates, fetchedAt: new Date() };
         } catch (error) {
-            console.error('Failed to fetch live rates:', error);
+            console.error('[ExchangeRateService] Failed to fetch live rates:', error.message, error.stack);
             throw error;
         }
     }
