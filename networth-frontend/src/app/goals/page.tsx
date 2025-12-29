@@ -562,35 +562,35 @@ export default function GoalsPage() {
                 activeGoal.goalNetWorth && (
                     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-emerald-600 to-green-600 shadow-2xl border-t-4 border-emerald-400 z-50">
                         <div className="max-w-7xl mx-auto px-6 py-4">
-                            <div className="flex flex-wrap items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="bg-white/20 p-3 rounded-xl">
-                                        <div className="text-2xl">🎯</div>
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/20 p-2 md:p-3 rounded-xl">
+                                        <div className="text-xl md:text-2xl">🎯</div>
                                     </div>
                                     <div>
-                                        <div className="text-xs text-emerald-100 uppercase tracking-wide">Active Goal</div>
-                                        <div className="text-xl font-bold text-white">Net Worth: {currency.symbol} {parseFloat(activeGoal.goalNetWorth || '0').toLocaleString()}</div>
+                                        <div className="text-[10px] md:text-xs text-emerald-100 uppercase tracking-wide">Active Goal</div>
+                                        <div className="text-base md:text-xl font-bold text-white">Net Worth: {currency.symbol} {parseFloat(activeGoal.goalNetWorth || '0').toLocaleString()}</div>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
                                     <div className="text-center">
-                                        <div className="text-xs text-emerald-100">Current</div>
-                                        <div className="text-lg font-bold text-white">{currency.symbol} {currentNetWorth.toLocaleString()}</div>
+                                        <div className="text-[10px] md:text-xs text-emerald-100">Current</div>
+                                        <div className="text-sm md:text-lg font-bold text-white">{currency.symbol} {currentNetWorth.toLocaleString()}</div>
                                     </div>
                                     <div className="text-center">
-                                        <div className="text-xs text-emerald-100">Progress</div>
-                                        <div className="text-lg font-bold text-white">{progress.percentage.toFixed(1)}%</div>
+                                        <div className="text-[10px] md:text-xs text-emerald-100">Progress</div>
+                                        <div className="text-sm md:text-lg font-bold text-white">{progress.percentage.toFixed(1)}%</div>
                                     </div>
                                     <div className="text-center">
-                                        <div className="text-xs text-emerald-100">Remaining</div>
-                                        <div className="text-lg font-bold text-white">{currency.symbol} {Math.max(0, progress.remaining).toLocaleString()}</div>
+                                        <div className="text-[10px] md:text-xs text-emerald-100">Remaining</div>
+                                        <div className="text-sm md:text-lg font-bold text-white">{currency.symbol} {Math.max(0, progress.remaining).toLocaleString()}</div>
                                     </div>
-                                    <div className="text-center">
+                                    <div className="text-center hidden md:block">
                                         <div className="text-xs text-emerald-100">Months Left</div>
                                         <div className="text-lg font-bold text-white">{progress.monthsLeft}</div>
                                     </div>
-                                    <div className="text-center">
+                                    <div className="text-center hidden md:block">
                                         <div className="text-xs text-emerald-100">Monthly Required</div>
                                         <div className="text-lg font-bold text-white">{currency.symbol} {Math.max(0, progress.monthlyRequired).toLocaleString()}</div>
                                     </div>
@@ -603,7 +603,7 @@ export default function GoalsPage() {
                                             style={{ width: `${Math.min(progress.percentage, 100)}%` }}
                                         ></div>
                                     </div>
-                                    <div className="text-xs text-emerald-100 mt-1 text-center">
+                                    <div className="text-[10px] md:text-xs text-emerald-100 mt-1 text-center">
                                         Target: {activeGoal.targetDate && new Date(activeGoal.targetDate).toLocaleDateString()}
                                     </div>
                                 </div>
