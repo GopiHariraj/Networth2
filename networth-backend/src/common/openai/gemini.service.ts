@@ -293,4 +293,22 @@ Return ONLY the JSON object.
 
         return result;
     }
+
+    /**
+     * Generic content generation method
+     */
+    async generateContent(prompt: string): Promise<string> {
+        try {
+            if (!this.model) {
+                throw new Error('Gemini API key not configured');
+            }
+
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (error) {
+            console.error('Gemini generateContent error:', error);
+            throw error;
+        }
+    }
 }

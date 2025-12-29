@@ -19,6 +19,7 @@ import { CreditCardsModule } from './credit-cards/credit-cards.module';
 import { GoalsModule } from './goals/goals.module';
 import { BondAssetsModule } from './bond-assets/bond-assets.module';
 import { MutualFundAssetsModule } from './mutual-fund-assets/mutual-fund-assets.module';
+import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { MutualFundAssetsModule } from './mutual-fund-assets/mutual-fund-assets.
     GoalsModule,
     BondAssetsModule,
     MutualFundAssetsModule,
+    ExchangeRateModule,
   ],
   controllers: [AppController],
   providers: [AppService],

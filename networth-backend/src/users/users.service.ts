@@ -260,4 +260,17 @@ export class UsersService {
 
     return { message: 'User deleted successfully' };
   }
+
+  async updateCurrency(userId: string, currency: string): Promise<void> {
+    // Validate currency code
+    const validCurrencies = ['AED', 'USD', 'EUR', 'GBP', 'INR', 'SAR'];
+    if (!validCurrencies.includes(currency)) {
+      throw new BadRequestException(`Invalid currency code. Supported currencies: ${validCurrencies.join(', ')}`);
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { currency },
+    });
+  }
 }

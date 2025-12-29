@@ -77,4 +77,18 @@ export class UsersController {
   ): Promise<{ resetLink: string; token: string }> {
     return this.usersService.generateResetLink(body.userId);
   }
+
+  @Put('me/currency')
+  async updateCurrency(
+    @Req() req: any,
+    @Body() body: { currency: string },
+  ): Promise<{ success: boolean; currency: string }> {
+    await this.usersService.updateCurrency(req.user.id, body.currency);
+    return { success: true, currency: body.currency };
+  }
+
+  @Get('me/profile')
+  async getMyProfile(@Req() req: any): Promise<UserResponseDto> {
+    return this.usersService.findOne(req.user.id);
+  }
 }

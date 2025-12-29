@@ -28,7 +28,7 @@ model User {
   role          Role     @default(USER)
   firstName     String
   lastName      String?
-  currency      String   @default("AED") // AED, INR
+  currency      String   @default("AED") @map("currency") // Display currency preference (AED, USD, EUR, etc.)
   refreshToken  String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -433,7 +433,28 @@ model PriceCache {
   currency    String
   fetchedAt   DateTime @default(now())
 
+
   @@unique([assetType, symbol, fetchedAt])
   @@index([assetType, symbol])
   @@map("price_cache")
+}
+
+// ============================================
+// EXCHANGE RATES
+// ============================================
+
+model ExchangeRate {
+  id             String   @id @default(uuid())
+  baseCurrency   String   // e.g., "AED"
+  targetCurrency String   // e.g., "USD"
+  rate           Decimal  @db.Decimal(18, 8)
+  source         String   @default("gemini") // gemini, fallback, manual
+  fetchedAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([baseCurrency, targetCurrency])
+  @@index([baseCurrency])
+  @@index([fetchedAt])
+  @@map("exchange_rates")
 }
