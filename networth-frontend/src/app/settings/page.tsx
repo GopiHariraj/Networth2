@@ -7,9 +7,10 @@ import { useAuth } from '../../lib/auth-context';
 import apiClient from '../../lib/api/client';
 
 export default function SettingsPage() {
-    const { currency, setCurrency } = useCurrency();
+    const { currency, setCurrency, exchangeRates, lastUpdate, isUsingCache, updateExchangeRates } = useCurrency();
     const { data: networthData } = useNetWorth();
     const { user } = useAuth();
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [settings, setSettings] = useState({
         notifications: true,
         darkMode: false,
@@ -21,6 +22,17 @@ export default function SettingsPage() {
         alert('Settings saved successfully! ⚙️');
     };
 
+    const handleRefreshRates = async () => {
+        setIsRefreshing(true);
+        try {
+            await updateExchangeRates();
+            alert('✅ Exchange rates updated successfully!');
+        } catch (error) {
+            alert('❌ Failed to update exchange rates. Using cached rates.');
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     // Export user-specific data as backup
     const handleExportData = async () => {
@@ -224,6 +236,56 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Exchange Rate Information */}
+                            {currency.code !== 'AED' && (
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Exchange Rates
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                                {lastUpdate ? (
+                                                    <>Last updated: {lastUpdate.toLocaleString()}</>
+                                                ) : (
+                                                    'No rates loaded yet'
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleRefreshRates}
+                                            disabled={isRefreshing}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <span className={isRefreshing ? 'animate-spin' : ''}>🔄</span>
+                                            {isRefreshing ? 'Updating...' : 'Refresh Rates'}
+                                        </button>
+                                    </div>
+
+                                    {isUsingCache && (
+                                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                                            <p className="text-sm text-amber-800 dark:text-amber-200">
+                                                ⚠️ <strong>Using cached rates:</strong> Live rates unavailable. Click refresh to try again.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {Object.keys(exchangeRates).length > 0 && (
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                                            <div className="text-xs font-medium text-slate-500 mb-2">Current Rates (from AED)</div>
+                                            <div className="grid grid-cols-3 gap-2 text-sm">
+                                                {Object.entries(exchangeRates).slice(0, 6).map(([curr, rate]) => (
+                                                    <div key={curr} className="flex justify-between">
+                                                        <span className="font-medium text-slate-700 dark:text-slate-300">{curr}:</span>
+                                                        <span className="text-slate-900 dark:text-white">{Number(rate).toFixed(4)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

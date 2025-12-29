@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useCurrency } from '../../lib/currency-context';
 
 const AssetCard = React.memo(({ asset, currencySymbol }: { asset: any; currencySymbol: string }) => {
     return (
@@ -14,7 +15,7 @@ const AssetCard = React.memo(({ asset, currencySymbol }: { asset: any; currencyS
                 <span className="text-emerald-500 text-xs font-bold">{asset.change}</span>
             </div>
             <h4 className="text-slate-600 dark:text-slate-400 text-sm">{asset.name}</h4>
-            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{currencySymbol} {asset.value.toLocaleString()}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{currencySymbol} {asset.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
     );
 });
@@ -26,12 +27,14 @@ interface PortfolioOverviewProps {
 }
 
 const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({ currency, networthData }) => {
+    const { convert } = useCurrency();
+
     const dynamicAssets = React.useMemo(() => [
-        { id: '1', name: 'Cash & Bank', value: networthData.assets.cash.totalCash, change: '+2.4%', type: 'Liquid', color: 'from-blue-500 to-blue-600', path: '/cash' },
-        { id: '2', name: 'Gold', value: networthData.assets.gold.totalValue, change: '+5.1%', type: 'Asset', color: 'from-amber-400 to-amber-500', path: '/gold' },
-        { id: '3', name: 'Stocks', value: networthData.assets.stocks.totalValue, change: '+12.3%', type: 'Investment', color: 'from-purple-500 to-purple-600', path: '/stocks' },
-        { id: '4', name: 'Property', value: networthData.assets.property.totalValue, change: '+1.5%', type: 'Real Estate', color: 'from-emerald-500 to-emerald-600', path: '/property' },
-    ].filter(a => a.value > 0 || (a.name === 'Cash & Bank')), [networthData.assets]);
+        { id: '1', name: 'Cash & Bank', value: convert(networthData.assets.cash.totalCash, 'AED'), change: '+2.4%', type: 'Liquid', color: 'from-blue-500 to-blue-600', path: '/cash' },
+        { id: '2', name: 'Gold', value: convert(networthData.assets.gold.totalValue, 'AED'), change: '+5.1%', type: 'Asset', color: 'from-amber-400 to-amber-500', path: '/gold' },
+        { id: '3', name: 'Stocks', value: convert(networthData.assets.stocks.totalValue, 'AED'), change: '+12.3%', type: 'Investment', color: 'from-purple-500 to-purple-600', path: '/stocks' },
+        { id: '4', name: 'Property', value: convert(networthData.assets.property.totalValue, 'AED'), change: '+1.5%', type: 'Real Estate', color: 'from-emerald-500 to-emerald-600', path: '/property' },
+    ].filter(a => a.value > 0 || (a.name === 'Cash & Bank')), [networthData.assets, convert]);
 
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -48,7 +51,7 @@ const PortfolioOverview: React.FC<PortfolioOverviewProps> = ({ currency, networt
                             asset={{
                                 id: 'loan-stat',
                                 name: 'Loans Outstanding',
-                                value: networthData.liabilities.loans.totalValue,
+                                value: convert(networthData.liabilities.loans.totalValue, 'AED'),
                                 change: 'Liability',
                                 type: 'Debt',
                                 color: 'from-red-500 to-rose-600'

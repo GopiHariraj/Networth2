@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { financialDataApi } from './api/financial-data';
 
 export interface Currency {
     code: string;
@@ -15,20 +16,23 @@ export const CURRENCIES: Currency[] = [
     { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
     { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧' },
     { code: 'INR', name: 'Indian Rupee', symbol: '₹', flag: '🇮🇳' },
-    { code: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵' },
-    { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', flag: '🇨🇳' },
     { code: 'SAR', name: 'Saudi Riyal', symbol: 'ر.س', flag: '🇸🇦' },
-    { code: 'QAR', name: 'Qatari Riyal', symbol: 'ر.ق', flag: '🇶🇦' },
-    { code: 'KWD', name: 'Kuwaiti Dinar', symbol: 'د.ك', flag: '🇰🇼' },
-    { code: 'OMR', name: 'Omani Rial', symbol: 'ر.ع', flag: '🇴🇲' },
-    { code: 'BHD', name: 'Bahraini Dinar', symbol: 'د.ب', flag: '🇧🇭' },
 ];
+
+interface ExchangeRates {
+    [currencyCode: string]: number;
+}
 
 interface CurrencyContextType {
     currency: Currency;
     setCurrency: (currency: Currency) => void;
     formatAmount: (amount: number) => string;
     resetCurrency: () => void;
+    exchangeRates: ExchangeRates;
+    lastUpdate: Date | null;
+    isUsingCache: boolean;
+    updateExchangeRates: () => Promise<void>;
+    convert: (amount: number, fromCurrency: string) => number;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -36,9 +40,12 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     const [currency, setCurrencyState] = useState<Currency>(CURRENCIES[0]); // Default to AED
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
+    const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+    const [isUsingCache, setIsUsingCache] = useState(false);
 
+    // Load user and currency preference
     useEffect(() => {
-        // Load saved currency from localStorage based on current user
         const savedUser = localStorage.getItem('user');
         if (savedUser) {
             try {
@@ -53,85 +60,171 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
                     if (savedCurrency) {
                         setCurrencyState(savedCurrency);
                     }
-                } else {
-                    // Reset to default if no preference for this user
-                    setCurrencyState(CURRENCIES[0]);
                 }
             } catch (e) {
                 console.error('Error loading user currency preference:', e);
                 setCurrencyState(CURRENCIES[0]);
             }
-        } else {
-            // No user logged in, reset to default
-            setCurrentUserId(null);
-            setCurrencyState(CURRENCIES[0]);
         }
-    }, []); // Run once on mount
+    }, []);
 
-    // Watch for user changes (login/logout)
+    // Fetch exchange rates when currency changes or on mount
     useEffect(() => {
-        const checkUserChange = () => {
-            const savedUser = localStorage.getItem('user');
+        if (currentUserId) {
+            fetchExchangeRates();
+        }
+    }, [currency, currentUserId]);
 
-            if (savedUser) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    const userId = user.id;
+    const fetchExchangeRates = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-                    // If user changed, reload currency
-                    if (userId !== currentUserId) {
-                        setCurrentUserId(userId);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/exchange-rates`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-                        // Load user-specific currency preference
-                        const savedCurrencyCode = localStorage.getItem(`preferredCurrency_${userId}`);
-                        if (savedCurrencyCode) {
-                            const savedCurrency = CURRENCIES.find(c => c.code === savedCurrencyCode);
-                            if (savedCurrency) {
-                                setCurrencyState(savedCurrency);
-                            } else {
-                                setCurrencyState(CURRENCIES[0]);
-                            }
-                        } else {
-                            // Reset to default if no preference for this user
-                            setCurrencyState(CURRENCIES[0]);
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error checking user change:', e);
-                }
-            } else if (currentUserId !== null) {
-                // User logged out, reset
-                setCurrentUserId(null);
-                setCurrencyState(CURRENCIES[0]);
+            if (!response.ok) {
+                throw new Error('Failed to fetch exchange rates');
             }
-        };
 
-        // Check on interval (every 500ms)
-        const interval = setInterval(checkUserChange, 500);
+            const data = await response.json();
 
-        return () => clearInterval(interval);
-    }, [currentUserId]);
+            setExchangeRates(data.rates || {});
+            setLastUpdate(data.fetchedAt ? new Date(data.fetchedAt) : new Date());
+            setIsUsingCache(data.usingCache || false);
+        } catch (error) {
+            console.error('Failed to fetch exchange rates:', error);
+            // Keep existing rates if fetch fails
+        }
+    };
 
-    const setCurrency = (newCurrency: Currency) => {
+    const updateExchangeRates = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/exchange-rates/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to refresh exchange rates');
+            }
+
+            const data = await response.json();
+
+            setExchangeRates(data.rates || {});
+            setLastUpdate(data.fetchedAt ? new Date(data.fetchedAt) : new Date());
+            setIsUsingCache(false);
+        } catch (error) {
+            console.error('Failed to refresh exchange rates:', error);
+            throw error;
+        }
+    };
+
+    const setCurrency = async (newCurrency: Currency) => {
         setCurrencyState(newCurrency);
 
         // Save with user-specific key
         if (currentUserId) {
             localStorage.setItem(`preferredCurrency_${currentUserId}`, newCurrency.code);
+
+            // Update on backend
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/currency`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ currency: newCurrency.code }),
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to update currency preference:', error);
+            }
         }
     };
 
     const resetCurrency = () => {
-        setCurrencyState(CURRENCIES[0]); // Reset to default (AED)
+        setCurrencyState(CURRENCIES[0]);
         setCurrentUserId(null);
     };
 
     const formatAmount = (amount: number): string => {
-        return `${currency.symbol} ${amount.toLocaleString()}`;
+        return `${currency.symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
+    /**
+     * Convert amount from one currency to display currency
+     * @param amount - The amount to convert
+     * @param fromCurrency - The currency code the amount is in (e.g., 'AED', 'USD')
+     * @returns Converted amount in display currency
+     */
+    const convert = (amount: number, fromCurrency: string = 'AED'): number => {
+        // If same currency, no conversion needed
+        if (fromCurrency === currency.code) {
+            return amount;
+        }
+
+        // If no exchange rates loaded, return original amount
+        if (Object.keys(exchangeRates).length === 0) {
+            return amount;
+        }
+
+        try {
+            // Convert through AED as base currency
+            let amountInAED = amount;
+
+            // If fromCurrency is not AED, convert to AED first
+            if (fromCurrency !== 'AED') {
+                const rateToAED = exchangeRates[fromCurrency];
+                if (!rateToAED) {
+                    console.warn(`No exchange rate found for ${fromCurrency}, using original amount`);
+                    return amount;
+                }
+                // If rate is AED->USD = 0.27, then USD->AED = 1/0.27
+                amountInAED = amount / rateToAED;
+            }
+
+            // Now convert from AED to target currency
+            if (currency.code === 'AED') {
+                return amountInAED;
+            }
+
+            const rateFromAED = exchangeRates[currency.code];
+            if (!rateFromAED) {
+                console.warn(`No exchange rate found for ${currency.code}, using original amount`);
+                return amount;
+            }
+
+            return amountInAED * rateFromAED;
+        } catch (error) {
+            console.error('Currency conversion error:', error);
+            return amount;
+        }
     };
 
     return (
-        <CurrencyContext.Provider value={{ currency, setCurrency, formatAmount, resetCurrency }}>
+        <CurrencyContext.Provider value={{
+            currency,
+            setCurrency,
+            formatAmount,
+            resetCurrency,
+            exchangeRates,
+            lastUpdate,
+            isUsingCache,
+            updateExchangeRates,
+            convert,
+        }}>
             {children}
         </CurrencyContext.Provider>
     );
