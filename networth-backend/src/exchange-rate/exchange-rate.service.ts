@@ -149,9 +149,6 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text before or after.`;
         const rate = await this.prisma.exchangeRate.findUnique({
             where: {
                 baseCurrency_targetCurrency: { baseCurrency, targetCurrency }
-            },
-            orderBy: {
-                fetchedAt: 'desc'
             }
         });
 
