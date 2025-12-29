@@ -36,7 +36,7 @@ export class ExchangeRateController {
         const userCurrency = req.user.currency || 'AED';
         const targetCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'SAR'];
 
-        return this.exchangeRateService.fetchLiveRates(
+        return this.exchangeRateService.getRatesWithFallback(
             userCurrency,
             targetCurrencies,
         );
