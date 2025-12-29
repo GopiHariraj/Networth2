@@ -117,7 +117,8 @@ model CreditCard {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses        Expense[] // Track expenses made with this card
 
   @@index([userId])
   @@map("credit_cards")
@@ -318,6 +319,7 @@ model Expense {
   merchant      String?
   paymentMethod String?  // cash, bank, credit_card
   accountId     String?
+  creditCardId  String?  // Link to CreditCard for credit_card payments
   recurrence    String   @default("one-time") // one-time, monthly, yearly
   periodTag     String   // daily, monthly, yearly
   notes         String?  @db.Text
@@ -327,11 +329,13 @@ model Expense {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard    CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
 
   @@index([userId, date])
   @@index([userId, category])
   @@index([userId, periodTag])
+  @@index([creditCardId])
   @@map("expenses")
 }
 

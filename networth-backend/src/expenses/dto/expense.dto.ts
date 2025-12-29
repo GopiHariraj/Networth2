@@ -38,6 +38,10 @@ export class CreateExpenseDto {
 
     @IsString()
     @IsOptional()
+    creditCardId?: string;
+
+    @IsString()
+    @IsOptional()
     recurrence?: string;
 
     @IsString()
@@ -89,6 +93,10 @@ export class UpdateExpenseDto {
     @IsString()
     @IsOptional()
     accountId?: string;
+
+    @IsString()
+    @IsOptional()
+    creditCardId?: string;
 
     @IsString()
     @IsOptional()

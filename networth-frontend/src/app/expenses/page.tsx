@@ -14,6 +14,7 @@ interface Expense {
     merchant?: string;
     paymentMethod?: string;
     accountId?: string;
+    creditCardId?: string;
     recurrence: string;
     notes?: string;
     source: string;
@@ -39,6 +40,7 @@ export default function ExpensesPage() {
     const [activeTab, setActiveTab] = useState('daily');
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+    const [creditCards, setCreditCards] = useState<any[]>([]);
     const [insights, setInsights] = useState<Insights | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +56,7 @@ export default function ExpensesPage() {
         merchant: '',
         paymentMethod: 'cash',
         accountId: '',
+        creditCardId: '',
         recurrence: 'one-time',
         notes: ''
     });
@@ -74,10 +77,11 @@ export default function ExpensesPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [expRes, catRes, insRes] = await Promise.all([
+            const [expRes, catRes, insRes, ccRes] = await Promise.all([
                 financialDataApi.expenses.getAll(),
                 financialDataApi.expenseCategories.getAll(),
                 financialDataApi.expenses.getInsights(),
+                financialDataApi.creditCards.getAll(),
             ]);
 
             setExpenses(expRes.data.map((e: any) => ({
@@ -86,6 +90,7 @@ export default function ExpensesPage() {
             })));
             setCategories(catRes.data);
             setInsights(insRes.data);
+            setCreditCards(ccRes.data);
 
             if (catRes.data.length > 0 && !editingId) {
                 setFormData(prev => ({ ...prev, category: catRes.data[0].name }));
@@ -135,6 +140,7 @@ export default function ExpensesPage() {
         const payload = {
             ...formData,
             amount: parseFloat(formData.amount),
+            creditCardId: formData.paymentMethod === 'credit_card' ? formData.creditCardId || null : null,
             periodTag: 'monthly'
         };
 
@@ -154,6 +160,7 @@ export default function ExpensesPage() {
                 merchant: '',
                 paymentMethod: 'cash',
                 accountId: '',
+                creditCardId: '',
                 recurrence: 'one-time',
                 notes: ''
             });
@@ -172,6 +179,7 @@ export default function ExpensesPage() {
             merchant: expense.merchant || '',
             paymentMethod: expense.paymentMethod || 'cash',
             accountId: expense.accountId || '',
+            creditCardId: expense.creditCardId || '',
             recurrence: expense.recurrence,
             notes: expense.notes || ''
         });
@@ -570,6 +578,34 @@ export default function ExpensesPage() {
                                                 <option value="debit_card">💳 Debit Card</option>
                                             </select>
                                         </div>
+
+                                        {/* Credit Card Dropdown - Shown only when payment method is credit_card */}
+                                        {formData.paymentMethod === 'credit_card' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">Select Credit Card</label>
+                                                <select
+                                                    value={formData.creditCardId}
+                                                    onChange={(e) => setFormData({ ...formData, creditCardId: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold appearance-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                    required={formData.paymentMethod === 'credit_card'}
+                                                >
+                                                    <option value="">Choose a card...</option>
+                                                    {creditCards.map(card => {
+                                                        const available = parseFloat(card.creditLimit) - parseFloat(card.usedAmount);
+                                                        return (
+                                                            <option key={card.id} value={card.id}>
+                                                                {card.cardName} - {card.bankName} (Available: {currency.symbol}{available.toLocaleString()})
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                                {creditCards.length === 0 && (
+                                                    <p className="text-xs text-amber-600 dark:text-amber-400 ml-2 mt-1">
+                                                        ⚠️ No credit cards found. Add one in the Loans/Credit Cards page first.
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
