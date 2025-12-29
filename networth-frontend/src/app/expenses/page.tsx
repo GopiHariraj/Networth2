@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useCurrency } from '../../lib/currency-context';
+import { useNetWorth } from '../../lib/networth-context';
 import { financialDataApi } from '../../lib/api/financial-data';
 import { PieChart, Pie, Cell, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, AreaChart, Area } from 'recharts';
 
@@ -37,6 +38,7 @@ interface Insights {
 
 export default function ExpensesPage() {
     const { currency } = useCurrency();
+    const { refreshNetWorth } = useNetWorth();
     const [activeTab, setActiveTab] = useState('daily');
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -152,6 +154,8 @@ export default function ExpensesPage() {
                 await financialDataApi.expenses.create(payload);
             }
             fetchData();
+            // Refresh net worth to update credit card balances
+            await refreshNetWorth();
             setFormData({
                 date: new Date().toISOString().split('T')[0],
                 amount: '',
@@ -191,6 +195,8 @@ export default function ExpensesPage() {
             try {
                 await financialDataApi.expenses.delete(id);
                 fetchData();
+                // Refresh net worth to update credit card balances
+                await refreshNetWorth();
             } catch (err) {
                 alert('Failed to delete expense');
             }
