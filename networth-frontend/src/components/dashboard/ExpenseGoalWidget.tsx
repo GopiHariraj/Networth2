@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { financialDataApi } from '../../lib/api/financial-data';
 import Link from 'next/link';
+import { useCurrency } from '../../lib/currency-context';
 
 interface ExpenseGoalWidgetProps {
     currency: any;
 }
 
 export default function ExpenseGoalWidget({ currency }: ExpenseGoalWidgetProps) {
+    const { convert } = useCurrency();
     const [expenseGoal, setExpenseGoal] = useState<number>(0);
     const [currentSpending, setCurrentSpending] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -77,17 +79,20 @@ export default function ExpenseGoalWidget({ currency }: ExpenseGoalWidgetProps) 
         );
     }
 
-    const percentage = (currentSpending / expenseGoal) * 100;
-    const remaining = expenseGoal - currentSpending;
-    const isOverBudget = currentSpending > expenseGoal;
+    const convertedSpending = convert(currentSpending, 'AED');
+    const convertedGoal = convert(expenseGoal, 'AED');
+
+    const percentage = convertedGoal > 0 ? (convertedSpending / convertedGoal) * 100 : 0;
+    const remaining = convertedGoal - convertedSpending;
+    const isOverBudget = convertedSpending > convertedGoal;
     const isNearLimit = percentage > 80 && !isOverBudget;
 
     return (
         <div className={`rounded-2xl p-6 shadow-lg ${isOverBudget
-                ? 'bg-gradient-to-br from-red-500 to-rose-600'
-                : isNearLimit
-                    ? 'bg-gradient-to-br from-amber-500 to-orange-600'
-                    : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+            ? 'bg-gradient-to-br from-red-500 to-rose-600'
+            : isNearLimit
+                ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                : 'bg-gradient-to-br from-emerald-500 to-teal-600'
             } text-white`}>
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -101,28 +106,16 @@ export default function ExpenseGoalWidget({ currency }: ExpenseGoalWidgetProps) 
                         </p>
                     </div>
                 </div>
-                <Link
-                    href="/expenses"
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
-                    title="View Details"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="bg-white/10 backdrop-blur-md rounded-xl p-3">
                     <div className="text-xs opacity-80 uppercase font-bold mb-1">Spent</div>
                     <div className="text-xl font-black font-mono">
-                        {currency.symbol} {currentSpending.toLocaleString()}
+                        {currency.symbol} {convertedSpending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md rounded-xl p-3">
                     <div className="text-xs opacity-80 uppercase font-bold mb-1">Budget</div>
                     <div className="text-xl font-black font-mono">
-                        {currency.symbol} {expenseGoal.toLocaleString()}
+                        {currency.symbol} {convertedGoal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md rounded-xl p-3">
@@ -130,7 +123,7 @@ export default function ExpenseGoalWidget({ currency }: ExpenseGoalWidgetProps) 
                         {isOverBudget ? 'Over' : 'Left'}
                     </div>
                     <div className="text-xl font-black font-mono">
-                        {currency.symbol} {Math.abs(remaining).toLocaleString()}
+                        {currency.symbol} {Math.abs(remaining).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
             </div>

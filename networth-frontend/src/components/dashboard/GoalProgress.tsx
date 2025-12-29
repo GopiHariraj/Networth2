@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { financialDataApi } from '../../lib/api/financial-data';
 
+import { useCurrency } from '../../lib/currency-context';
+
 interface GoalProgressProps {
     currentNetWorth: number;
     currency: { symbol: string, code: string };
@@ -15,6 +17,7 @@ interface GoalProgressProps {
 }
 
 const GoalProgress: React.FC<GoalProgressProps> = ({ currentNetWorth, currency, secondaryGoalsData }) => {
+    const { convert } = useCurrency();
     const [activeGoal, setActiveGoal] = useState<any>(null);
     const [secondaryGoals, setSecondaryGoals] = useState<any>(null);
     const [isEditingGoal, setIsEditingGoal] = useState(false);
@@ -97,7 +100,8 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ currentNetWorth, currency, 
         }
     };
 
-    const goalNetWorth = parseFloat(activeGoal?.goalNetWorth) || 0;
+    const goalNetWorthRaw = parseFloat(activeGoal?.goalNetWorth) || 0;
+    const goalNetWorth = convert(goalNetWorthRaw, 'AED');
     const targetDate = activeGoal?.targetDate ? new Date(activeGoal.targetDate) : null;
     const startDate = activeGoal?.createdAt ? new Date(activeGoal.createdAt) : new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
 
@@ -217,19 +221,19 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ currentNetWorth, currency, 
                     {secondaryGoals.propertyValue && (
                         <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
                             <div className="text-xs text-purple-200 mb-1">🏠 Property</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.propertyTotal.toLocaleString()} / {parseInt(secondaryGoals.propertyValue).toLocaleString()}</div>
+                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.propertyTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.propertyValue), 'AED').toLocaleString()}</div>
                         </div>
                     )}
                     {secondaryGoals.stocks && (
                         <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
                             <div className="text-xs text-purple-200 mb-1">📈 Stocks</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.stocksTotal.toLocaleString()} / {parseInt(secondaryGoals.stocks).toLocaleString()}</div>
+                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.stocksTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.stocks), 'AED').toLocaleString()}</div>
                         </div>
                     )}
                     {secondaryGoals.cashAndBank && (
                         <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
                             <div className="text-xs text-purple-200 mb-1">🏦 Cash Target</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.cashTotal.toLocaleString()} / {parseInt(secondaryGoals.cashAndBank).toLocaleString()}</div>
+                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.cashTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.cashAndBank), 'AED').toLocaleString()}</div>
                         </div>
                     )}
                 </div>

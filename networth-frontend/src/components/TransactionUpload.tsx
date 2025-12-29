@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { transactionsApi } from '../lib/api/client';
 import Link from 'next/link';
+import { useCurrency } from '../lib/currency-context';
 
 export default function TransactionUpload({ onTransactionAdded }: { onTransactionAdded: () => void }) {
+    const { currency, convert } = useCurrency();
     const [activeTab, setActiveTab] = useState<'sms' | 'receipt'>('sms');
     const [smsText, setSmsText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -178,7 +180,7 @@ Examples:
 
                     <div className="text-emerald-700 dark:text-emerald-300 text-sm space-y-1">
                         <p className="font-semibold">✓ Transaction Created Successfully!</p>
-                        <p><b>Amount:</b> ${result.amount?.toLocaleString()}</p>
+                        <p><b>Amount:</b> {currency.symbol} {convert(result.amount || 0, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
 
                         {/* Gold-specific */}
                         {result.type === 'GOLD' && result.weight && (
@@ -194,7 +196,7 @@ Examples:
                             <>
                                 <p><b>Symbol:</b> {result.stockSymbol}</p>
                                 <p><b>Units:</b> {result.units || 0}</p>
-                                <p><b>Price/Unit:</b> ${result.unitPrice?.toFixed(2)}</p>
+                                <p><b>Price/Unit:</b> {currency.symbol} {convert(result.unitPrice || 0, 'AED').toFixed(2)}</p>
                                 <p><b>Market:</b> {result.market || 'NASDAQ'}</p>
                             </>
                         )}

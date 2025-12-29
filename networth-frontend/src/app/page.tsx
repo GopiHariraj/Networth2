@@ -28,8 +28,10 @@ interface Transaction {
     category?: { name: string };
 }
 
-const TransactionRow = React.memo(({ tx, currencySymbol }: { tx: Transaction; currencySymbol: string }) => {
+const TransactionRow = React.memo(({ tx, currencySymbol, convert }: { tx: Transaction; currencySymbol: string, convert: (val: number, from?: string) => number }) => {
     const isCredit = tx.type === 'INCOME';
+    const displayAmount = convert(Number(tx.amount), 'AED');
+
     return (
         <div className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors cursor-pointer">
             <div className="flex items-center gap-4">
@@ -42,7 +44,7 @@ const TransactionRow = React.memo(({ tx, currencySymbol }: { tx: Transaction; cu
                 </div>
             </div>
             <span className={`font-bold ${isCredit ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
-                {isCredit ? '+' : ''} {currencySymbol} {Number(tx.amount).toLocaleString()}
+                {isCredit ? '+' : ''} {currencySymbol} {displayAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
         </div>
     );
@@ -51,7 +53,7 @@ TransactionRow.displayName = 'TransactionRow';
 
 export default function Dashboard() {
     const { isAuthenticated, isLoading } = useAuth();
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data: networthData } = useNetWorth();
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [filterPeriod, setFilterPeriod] = useState('Monthly');
@@ -61,13 +63,15 @@ export default function Dashboard() {
 
     if (isLoading || !isAuthenticated) return null;
 
+    const convertedNetWorth = convert(networthData.netWorth || 0, 'AED');
+
     const netWorthTrendLine = [
-        { month: 'Jul', netWorth: (networthData.netWorth || 0) * 0.85 },
-        { month: 'Aug', netWorth: (networthData.netWorth || 0) * 0.88 },
-        { month: 'Sep', netWorth: (networthData.netWorth || 0) * 0.91 },
-        { month: 'Oct', netWorth: (networthData.netWorth || 0) * 0.94 },
-        { month: 'Nov', netWorth: (networthData.netWorth || 0) * 0.97 },
-        { month: 'Dec', netWorth: (networthData.netWorth || 0) },
+        { month: 'Jul', netWorth: convertedNetWorth * 0.85 },
+        { month: 'Aug', netWorth: convertedNetWorth * 0.88 },
+        { month: 'Sep', netWorth: convertedNetWorth * 0.91 },
+        { month: 'Oct', netWorth: convertedNetWorth * 0.94 },
+        { month: 'Nov', netWorth: convertedNetWorth * 0.97 },
+        { month: 'Dec', netWorth: convertedNetWorth },
     ];
 
     const fetchDashboard = async () => {
@@ -97,13 +101,13 @@ export default function Dashboard() {
                 </header>
 
                 <GoalProgress
-                    currentNetWorth={networthData.netWorth}
+                    currentNetWorth={convertedNetWorth}
                     currency={currency}
                     secondaryGoalsData={{
                         goldItems: networthData.assets.gold.items,
-                        propertyTotal: networthData.assets.property.totalValue,
-                        stocksTotal: networthData.assets.stocks.totalValue,
-                        cashTotal: networthData.assets.cash.totalCash
+                        propertyTotal: convert(networthData.assets.property.totalValue, 'AED'),
+                        stocksTotal: convert(networthData.assets.stocks.totalValue, 'AED'),
+                        cashTotal: convert(networthData.assets.cash.totalCash, 'AED')
                     }}
                 />
 
@@ -190,7 +194,7 @@ export default function Dashboard() {
                         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
                             <h3 className="font-bold text-lg mb-4">Recent Transactions</h3>
                             <div className="space-y-1">
-                                {dashboardData?.recentTransactions?.map((tx: any) => <TransactionRow key={tx.id} tx={tx} currencySymbol={currency.symbol} />)}
+                                {dashboardData?.recentTransactions?.map((tx: any) => <TransactionRow key={tx.id} tx={tx} currencySymbol={currency.symbol} convert={convert} />)}
                                 {!dashboardData?.recentTransactions?.length && <p className="text-sm text-slate-400">No transactions yet.</p>}
                             </div>
                         </div>
