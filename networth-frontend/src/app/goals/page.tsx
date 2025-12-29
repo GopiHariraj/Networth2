@@ -505,7 +505,7 @@ export default function GoalsPage() {
                 )}
 
                 {/* Active Net Worth Goal Section */}
-                <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg text-white mt-8 mb-32">
+                <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg text-white mt-8 mb-80">
                     <h2 className="text-2xl font-bold mb-6">🎯 Set Your Net Worth Goal</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
