@@ -10,7 +10,9 @@ export class GeminiService {
         // Only initialize Gemini if API key is available
         if (process.env.GEMINI_API_KEY) {
             this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-            this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const modelName = 'gemini-1.5-flash';
+            console.log(`[GeminiService] Initializing with model: ${modelName}`);
+            this.model = this.genAI.getGenerativeModel({ model: modelName });
         }
     }
 
