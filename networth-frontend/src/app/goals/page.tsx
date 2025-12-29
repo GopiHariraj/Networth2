@@ -179,7 +179,7 @@ export default function GoalsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
+        <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 p-8 ${activeGoal.goalNetWorth ? 'pb-96 md:pb-48' : ''}`}>
             <div className="max-w-5xl mx-auto">
                 <header className="mb-10">
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">🎯 Financial Goals</h1>
@@ -505,7 +505,7 @@ export default function GoalsPage() {
                 )}
 
                 {/* Active Net Worth Goal Section */}
-                <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg text-white mt-8 mb-80">
+                <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl p-6 shadow-lg text-white mt-8 mb-8">
                     <h2 className="text-2xl font-bold mb-6">🎯 Set Your Net Worth Goal</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
