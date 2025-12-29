@@ -18,7 +18,7 @@ interface Stock {
 }
 
 export default function StocksPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [stocks, setStocks] = useState<Stock[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -148,12 +148,23 @@ export default function StocksPage() {
         return invested === 0 ? 0 : (getTotalGainLoss() / invested) * 100;
     };
 
-    const marketDistribution = stocks.reduce((acc: any, s) => {
+    const marketDistribution = React.useMemo(() => stocks.reduce((acc: any, s) => {
         const existing = acc.find((item: any) => item.name === s.exchange);
-        if (existing) existing.value += s.totalValue;
-        else acc.push({ name: s.exchange, value: s.totalValue });
+        const convertedValue = convert(s.totalValue, 'AED');
+        if (existing) existing.value += convertedValue;
+        else acc.push({ name: s.exchange, value: convertedValue });
         return acc;
-    }, []);
+    }, []), [stocks, convert]);
+
+    const chartData = React.useMemo(() =>
+        stocks
+            .sort((a, b) => b.totalValue - a.totalValue)
+            .map(s => ({
+                stockName: s.stockName,
+                totalValue: convert(s.totalValue, 'AED')
+            })),
+        [stocks, convert]
+    );
 
     const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
@@ -190,20 +201,20 @@ export default function StocksPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl shadow-blue-200 dark:shadow-none">
                         <div className="text-sm opacity-90 font-medium tracking-wide uppercase">Market Value</div>
-                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {getTotalPortfolioValue().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {convert(getTotalPortfolioValue(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 flex items-center gap-2 text-xs bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
                             Real-time tracking enabled
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Investment</div>
-                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {getTotalInvested().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {convert(getTotalInvested(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-2 text-xs text-slate-400">Total Capital Deployed</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Total P&L</div>
                         <div className={`text-3xl font-bold mt-3 font-mono ${getTotalGainLoss() >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {getTotalGainLoss() >= 0 ? '+' : ''}{currency.symbol} {getTotalGainLoss().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {getTotalGainLoss() >= 0 ? '+' : ''}{currency.symbol} {convert(getTotalGainLoss(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div className={`mt-2 text-xs font-bold ${getTotalGainLoss() >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                             {getOverallReturn().toFixed(2)}% Lifetime Yield
@@ -276,16 +287,16 @@ export default function StocksPage() {
                                                         {stock.units} <span className="text-[10px] text-slate-400">shares</span>
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-mono text-slate-500 dark:text-slate-400 italic">
-                                                        {currency.symbol}{stock.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        {currency.symbol}{convert(stock.unitPrice, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-mono font-bold text-slate-900 dark:text-white">
-                                                        {currency.symbol}{stock.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        {currency.symbol}{convert(stock.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-8 py-6 text-right">
-                                                        <div className="font-mono font-bold text-slate-900 dark:text-white text-lg">{currency.symbol}{stock.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                        <div className="font-mono font-bold text-slate-900 dark:text-white text-lg">{currency.symbol}{convert(stock.totalValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         <div className={`text-[10px] font-bold mt-1 uppercase ${gain >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                             {gain >= 0 ? '▲' : '▼'} {Math.abs(gainPercent).toFixed(2)}%
-                                                            ({gain >= 0 ? '+' : ''}{currency.symbol}{Math.abs(gain).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                            ({gain >= 0 ? '+' : ''}{currency.symbol}{convert(Math.abs(gain), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-6 text-center">
@@ -462,7 +473,7 @@ export default function StocksPage() {
                                 <div className="h-[350px]">
                                     {stocks.length > 0 ? (
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={stocks.sort((a, b) => b.totalValue - a.totalValue)}>
+                                            <BarChart data={chartData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                 <XAxis dataKey="stockName" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />

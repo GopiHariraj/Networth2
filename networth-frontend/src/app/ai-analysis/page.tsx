@@ -35,7 +35,7 @@ const PRESET_QUESTIONS = [
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function AIAnalyticsPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data: networthData } = useNetWorth();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
@@ -43,9 +43,9 @@ export default function AIAnalyticsPage() {
 
     // Real insights from NetWorthContext
     const insights = {
-        netWorthTrend: networthData.netWorth > 0 ? `${currency.symbol} ${networthData.netWorth.toLocaleString()}` : "No data",
-        biggestAssetChange: networthData.totalAssets > 0 ? `Total: ${currency.symbol} ${networthData.totalAssets.toLocaleString()}` : "No assets",
-        biggestLiabilityChange: networthData.totalLiabilities > 0 ? `Total: ${currency.symbol} ${networthData.totalLiabilities.toLocaleString()}` : "No liabilities"
+        netWorthTrend: networthData.netWorth > 0 ? `${currency.symbol} ${convert(networthData.netWorth, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "No data",
+        biggestAssetChange: networthData.totalAssets > 0 ? `Total: ${currency.symbol} ${convert(networthData.totalAssets, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "No assets",
+        biggestLiabilityChange: networthData.totalLiabilities > 0 ? `Total: ${currency.symbol} ${convert(networthData.totalLiabilities, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "No liabilities"
     };
 
     // Real data chart generator
@@ -57,18 +57,18 @@ export default function AIAnalyticsPage() {
                     title: 'Net Worth Trend - Last 12 Months',
                     data: Array.from({ length: 12 }, (_, i) => ({
                         month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-                        value: networthData.netWorth || 0
+                        value: convert(networthData.netWorth || 0, 'AED')
                     })),
                     xKey: 'month',
                     yKey: 'value'
                 };
             case 2: // Assets breakdown
                 const assetData = [];
-                if (networthData.assets.property.totalValue > 0) assetData.push({ name: 'Property', value: networthData.assets.property.totalValue });
-                if (networthData.assets.stocks.totalValue > 0) assetData.push({ name: 'Stocks', value: networthData.assets.stocks.totalValue });
-                if (networthData.assets.gold.totalValue > 0) assetData.push({ name: 'Gold', value: networthData.assets.gold.totalValue });
-                if (networthData.assets.bonds.totalValue > 0) assetData.push({ name: 'Bonds', value: networthData.assets.bonds.totalValue });
-                if (networthData.assets.cash.totalCash > 0) assetData.push({ name: 'Cash', value: networthData.assets.cash.totalCash });
+                if (networthData.assets.property.totalValue > 0) assetData.push({ name: 'Property', value: convert(networthData.assets.property.totalValue, 'AED') });
+                if (networthData.assets.stocks.totalValue > 0) assetData.push({ name: 'Stocks', value: convert(networthData.assets.stocks.totalValue, 'AED') });
+                if (networthData.assets.gold.totalValue > 0) assetData.push({ name: 'Gold', value: convert(networthData.assets.gold.totalValue, 'AED') });
+                if (networthData.assets.bonds.totalValue > 0) assetData.push({ name: 'Bonds', value: convert(networthData.assets.bonds.totalValue, 'AED') });
+                if (networthData.assets.cash.totalCash > 0) assetData.push({ name: 'Cash', value: convert(networthData.assets.cash.totalCash, 'AED') });
 
                 return assetData.length > 0 ? {
                     type: 'pie',
@@ -78,8 +78,8 @@ export default function AIAnalyticsPage() {
                 } : undefined;
             case 3: // Liabilities breakdown
                 const liabilityData = [];
-                if (networthData.liabilities.loans.totalValue > 0) liabilityData.push({ name: 'Loans', value: networthData.liabilities.loans.totalValue });
-                if (networthData.liabilities.creditCards.totalValue > 0) liabilityData.push({ name: 'Credit Cards', value: networthData.liabilities.creditCards.totalValue });
+                if (networthData.liabilities.loans.totalValue > 0) liabilityData.push({ name: 'Loans', value: convert(networthData.liabilities.loans.totalValue, 'AED') });
+                if (networthData.liabilities.creditCards.totalValue > 0) liabilityData.push({ name: 'Credit Cards', value: convert(networthData.liabilities.creditCards.totalValue, 'AED') });
 
                 return liabilityData.length > 0 ? {
                     type: 'pie',
@@ -93,15 +93,15 @@ export default function AIAnalyticsPage() {
                     title: 'Gold Value Trend - Last 6 Months',
                     data: Array.from({ length: 6 }, (_, i) => ({
                         month: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
-                        value: networthData.assets.gold.totalValue
+                        value: convert(networthData.assets.gold.totalValue, 'AED')
                     })),
                     xKey: 'month',
                     yKey: 'value'
                 } : undefined;
             case 5: // EMI breakdown
                 const emiData = [];
-                if (networthData.liabilities.loans.totalValue > 0) emiData.push({ category: 'Loans', amount: networthData.liabilities.loans.totalValue });
-                if (networthData.liabilities.creditCards.totalValue > 0) emiData.push({ category: 'Credit Cards', amount: networthData.liabilities.creditCards.totalValue });
+                if (networthData.liabilities.loans.totalValue > 0) emiData.push({ category: 'Loans', amount: convert(networthData.liabilities.loans.totalValue, 'AED') });
+                if (networthData.liabilities.creditCards.totalValue > 0) emiData.push({ category: 'Credit Cards', amount: convert(networthData.liabilities.creditCards.totalValue, 'AED') });
 
                 return emiData.length > 0 ? {
                     type: 'bar',
@@ -112,11 +112,11 @@ export default function AIAnalyticsPage() {
                 } : undefined;
             case 8: // Top 5 accounts
                 const topAccounts = [];
-                if (networthData.assets.property.totalValue > 0) topAccounts.push({ account: 'Property', value: networthData.assets.property.totalValue });
-                if (networthData.assets.stocks.totalValue > 0) topAccounts.push({ account: 'Stocks', value: networthData.assets.stocks.totalValue });
-                if (networthData.assets.cash.totalCash > 0) topAccounts.push({ account: 'Cash', value: networthData.assets.cash.totalCash });
-                if (networthData.assets.gold.totalValue > 0) topAccounts.push({ account: 'Gold', value: networthData.assets.gold.totalValue });
-                if (networthData.assets.bonds.totalValue > 0) topAccounts.push({ account: 'Bonds', value: networthData.assets.bonds.totalValue });
+                if (networthData.assets.property.totalValue > 0) topAccounts.push({ account: 'Property', value: convert(networthData.assets.property.totalValue, 'AED') });
+                if (networthData.assets.stocks.totalValue > 0) topAccounts.push({ account: 'Stocks', value: convert(networthData.assets.stocks.totalValue, 'AED') });
+                if (networthData.assets.cash.totalCash > 0) topAccounts.push({ account: 'Cash', value: convert(networthData.assets.cash.totalCash, 'AED') });
+                if (networthData.assets.gold.totalValue > 0) topAccounts.push({ account: 'Gold', value: convert(networthData.assets.gold.totalValue, 'AED') });
+                if (networthData.assets.bonds.totalValue > 0) topAccounts.push({ account: 'Bonds', value: convert(networthData.assets.bonds.totalValue, 'AED') });
 
                 return topAccounts.length > 0 ? {
                     type: 'bar',
@@ -207,7 +207,7 @@ export default function AIAnalyticsPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey={chartData.xKey || ''} />
                             <YAxis />
-                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                             <Legend />
                             <Line type="monotone" dataKey={chartData.yKey || ''} stroke="#3b82f6" strokeWidth={2} />
                         </LineChart>
@@ -220,7 +220,7 @@ export default function AIAnalyticsPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey={chartData.xKey || ''} />
                             <YAxis />
-                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                             <Legend />
                             <Bar dataKey={chartData.yKey || ''} fill="#8b5cf6" />
                         </BarChart>
@@ -235,7 +235,7 @@ export default function AIAnalyticsPage() {
                                     <Cell key={`cell-${index}`} fill={chartData.colors?.[index] || COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
-                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                            <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                             <Legend />
                         </PieChart>
                     </ResponsiveContainer>

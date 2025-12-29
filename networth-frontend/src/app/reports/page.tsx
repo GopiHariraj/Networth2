@@ -8,41 +8,36 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4'];
 
 export default function ReportsPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data } = useNetWorth();
 
-    const netWorth = data.netWorth;
-    const totalAssets = data.totalAssets;
-    const totalLiabilities = data.totalLiabilities;
+    const netWorth = React.useMemo(() => convert(data.netWorth || 0, 'AED'), [data.netWorth, convert]);
+    const totalAssets = React.useMemo(() => convert(data.totalAssets || 0, 'AED'), [data.totalAssets, convert]);
+    const totalLiabilities = React.useMemo(() => convert(data.totalLiabilities || 0, 'AED'), [data.totalLiabilities, convert]);
 
-    const summaryData = [
-        { name: 'Assets', value: totalAssets },
-        { name: 'Liabilities', value: totalLiabilities }
-    ];
+    const detailedBreakdown = React.useMemo(() => [
+        { category: 'Property', assets: convert(data.assets.property.totalValue || 0, 'AED'), liabilities: convert(data.liabilities.loans.totalValue || 0, 'AED') },
+        { category: 'Stocks & MF', assets: convert((data.assets.stocks.totalValue || 0) + (data.assets.mutualFunds.totalValue || 0), 'AED'), liabilities: convert(data.liabilities.creditCards.totalValue || 0, 'AED') },
+        { category: 'Cash & Bonds', assets: convert((data.assets.cash.totalCash || 0) + (data.assets.bonds.totalValue || 0), 'AED'), liabilities: 0 },
+        { category: 'Precious Metals', assets: convert(data.assets.gold.totalValue || 0, 'AED'), liabilities: 0 }
+    ], [data, convert]);
 
-    const detailedBreakdown = [
-        { category: 'Property', assets: data.assets.property.totalValue, liabilities: data.liabilities.loans.totalValue },
-        { category: 'Stocks & MF', assets: data.assets.stocks.totalValue + data.assets.mutualFunds.totalValue, liabilities: data.liabilities.creditCards.totalValue },
-        { category: 'Cash & Bonds', assets: data.assets.cash.totalCash + data.assets.bonds.totalValue, liabilities: 0 },
-        { category: 'Precious Metals', assets: data.assets.gold.totalValue, liabilities: 0 }
-    ];
-
-    const assetAllocation = [
-        { name: 'Real Estate', value: data.assets.property.totalValue },
-        { name: 'Equities', value: data.assets.stocks.totalValue + data.assets.mutualFunds.totalValue },
-        { name: 'Cash', value: data.assets.cash.totalCash },
-        { name: 'Gold', value: data.assets.gold.totalValue },
-        { name: 'Fixed Income', value: data.assets.bonds.totalValue }
-    ].filter(a => a.value > 0);
+    const assetAllocation = React.useMemo(() => [
+        { name: 'Real Estate', value: convert(data.assets.property.totalValue || 0, 'AED') },
+        { name: 'Equities', value: convert((data.assets.stocks.totalValue || 0) + (data.assets.mutualFunds.totalValue || 0), 'AED') },
+        { name: 'Cash', value: convert(data.assets.cash.totalCash || 0, 'AED') },
+        { name: 'Gold', value: convert(data.assets.gold.totalValue || 0, 'AED') },
+        { name: 'Fixed Income', value: convert(data.assets.bonds.totalValue || 0, 'AED') }
+    ].filter(a => a.value > 0), [data, convert]);
 
     // Get top 5 holdings across all categories
-    const allHoldings = [
-        ...(data.assets.property.items || []).map((i: any) => ({ name: i.name, value: parseFloat(i.value), type: 'Property' })),
-        ...(data.assets.stocks.items || []).map((i: any) => ({ name: i.name, value: parseFloat(i.currentValue), type: 'Stock' })),
-        ...(data.assets.mutualFunds.items || []).map((i: any) => ({ name: i.name, value: parseFloat(i.currentValue), type: 'Mutual Fund' })),
-        ...(data.assets.gold.items || []).map((i: any) => ({ name: i.name, value: parseFloat(i.currentValue), type: 'Gold' })),
-        ...(data.assets.bonds.items || []).map((i: any) => ({ name: i.name, value: parseFloat(i.currentValue), type: 'Bond' }))
-    ].sort((a, b) => b.value - a.value).slice(0, 8);
+    const allHoldings = React.useMemo(() => [
+        ...(data.assets.property.items || []).map((i: any) => ({ name: i.name, value: convert(parseFloat(i.value) || 0, 'AED'), type: 'Property' })),
+        ...(data.assets.stocks.items || []).map((i: any) => ({ name: i.name, value: convert(parseFloat(i.currentValue) || 0, 'AED'), type: 'Stock' })),
+        ...(data.assets.mutualFunds.items || []).map((i: any) => ({ name: i.name, value: convert(parseFloat(i.currentValue) || 0, 'AED'), type: 'Mutual Fund' })),
+        ...(data.assets.gold.items || []).map((i: any) => ({ name: i.name, value: convert(parseFloat(i.currentValue) || 0, 'AED'), type: 'Gold' })),
+        ...(data.assets.bonds.items || []).map((i: any) => ({ name: i.name, value: convert(parseFloat(i.currentValue) || 0, 'AED'), type: 'Bond' }))
+    ].sort((a, b) => b.value - a.value).slice(0, 8), [data, convert]);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -59,7 +54,7 @@ export default function ReportsPage() {
                         <div>
                             <div className="text-slate-400 font-bold uppercase tracking-widest text-sm mb-2">My Total Net Worth</div>
                             <div className="text-6xl font-black text-slate-900 dark:text-white leading-tight">
-                                {currency.symbol} {netWorth.toLocaleString()}
+                                {currency.symbol} {netWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                             <div className="mt-4 flex items-center gap-2 text-emerald-500 font-bold">
                                 <span className="bg-emerald-500/10 px-3 py-1 rounded-full text-xs">↑ 4.2% from last month</span>
@@ -68,11 +63,11 @@ export default function ReportsPage() {
                         <div className="flex gap-4 w-full md:w-auto">
                             <div className="flex-1 md:flex-none px-8 py-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                 <div className="text-xs text-slate-400 font-bold uppercase mb-1">Total Assets</div>
-                                <div className="text-xl font-black text-blue-600">{currency.symbol} {totalAssets.toLocaleString()}</div>
+                                <div className="text-xl font-black text-blue-600">{currency.symbol} {totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             </div>
                             <div className="flex-1 md:flex-none px-8 py-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                 <div className="text-xs text-slate-400 font-bold uppercase mb-1">Total Liabilities</div>
-                                <div className="text-xl font-black text-rose-600">{currency.symbol} {totalLiabilities.toLocaleString()}</div>
+                                <div className="text-xl font-black text-rose-600">{currency.symbol} {totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             </div>
                         </div>
                     </div>
@@ -91,6 +86,7 @@ export default function ReportsPage() {
                                     <Tooltip
                                         cursor={{ fill: '#f1f5f9' }}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]}
                                     />
                                     <Legend iconType="circle" />
                                     <Bar dataKey="assets" name="Assets" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
@@ -121,7 +117,7 @@ export default function ReportsPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Total Value']}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Total Value']}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Legend iconType="circle" />
@@ -157,7 +153,7 @@ export default function ReportsPage() {
                                                     {holding.type}
                                                 </span>
                                             </td>
-                                            <td className="px-8 py-5 text-right font-mono font-bold text-slate-900 dark:text-white">{currency.symbol} {holding.value.toLocaleString()}</td>
+                                            <td className="px-8 py-5 text-right font-mono font-bold text-slate-900 dark:text-white">{currency.symbol} {holding.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-8 py-5 text-right">
                                                 <div className="flex items-center justify-end gap-3">
                                                     <span className="text-xs font-bold text-slate-400">{((holding.value / totalAssets) * 100).toFixed(1)}%</span>

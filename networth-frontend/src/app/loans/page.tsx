@@ -37,7 +37,7 @@ interface CreditCard {
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981'];
 
 export default function LoansPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [loans, setLoans] = useState<HousingLoan[]>([]);
     const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
@@ -229,22 +229,22 @@ export default function LoansPage() {
     const getTotalEMI = () => loans.reduce((sum, l) => sum + l.emiAmount, 0) + creditCards.reduce((sum, c) => sum + c.monthlyInstallment, 0);
 
     // Chart Data
-    const debtDistribution = [
-        { name: 'Loans', value: getTotalLoanBalance() },
-        { name: 'Credit Cards', value: getTotalUsed() }
-    ].filter(d => d.value > 0);
+    const debtDistribution = React.useMemo(() => [
+        { name: 'Loans', value: convert(getTotalLoanBalance(), 'AED') },
+        { name: 'Credit Cards', value: convert(getTotalUsed(), 'AED') }
+    ].filter(d => d.value > 0), [loans, creditCards, convert]);
 
-    const loanChartData = loans.map(l => ({
+    const loanChartData = React.useMemo(() => loans.map(l => ({
         name: l.lenderName.length > 12 ? l.lenderName.substring(0, 12) + '...' : l.lenderName,
-        outstanding: l.outstandingBalance,
+        outstanding: convert(l.outstandingBalance, 'AED'),
         rate: l.interestRate
-    }));
+    })), [loans, convert]);
 
-    const cardChartData = creditCards.map(c => ({
+    const cardChartData = React.useMemo(() => creditCards.map(c => ({
         name: c.cardName,
-        used: c.usedAmount,
-        limit: c.totalLimit
-    }));
+        used: convert(c.usedAmount, 'AED'),
+        limit: convert(c.totalLimit, 'AED')
+    })), [creditCards, convert]);
 
     const renderInsights = () => (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -268,7 +268,7 @@ export default function LoansPage() {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                                <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>
@@ -312,11 +312,11 @@ export default function LoansPage() {
                     </div>
                     <div>
                         <p className="text-sm text-slate-500 mb-1">Monthly Repayment</p>
-                        <p className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {getTotalEMI().toLocaleString()}</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {convert(getTotalEMI(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                     <div>
                         <p className="text-sm text-slate-500 mb-1">Total Loan Principal</p>
-                        <p className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {loans.reduce((acc, l) => acc + l.originalAmount, 0).toLocaleString()}</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {convert(loans.reduce((acc, l) => acc + l.originalAmount, 0), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                 </div>
             </div>
@@ -350,7 +350,7 @@ export default function LoansPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                     <div className="bg-gradient-to-br from-red-500 via-rose-600 to-pink-600 p-7 rounded-3xl text-white shadow-xl shadow-red-500/20">
                         <div className="text-red-100 text-sm font-bold uppercase tracking-wider mb-2">Total Outstanding Debt</div>
-                        <div className="text-3xl md:text-4xl font-black">{currency.symbol} {(getTotalLoanBalance() + getTotalUsed()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-3xl md:text-4xl font-black">{currency.symbol} {convert(getTotalLoanBalance() + getTotalUsed(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-2 text-xs text-red-100">Loans + Cards</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-7 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -452,7 +452,7 @@ export default function LoansPage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Monthly EMI</p>
-                                                        <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{currency.symbol} {l.emiAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                                        <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{currency.symbol} {convert(l.emiAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Maturity</p>
@@ -462,7 +462,7 @@ export default function LoansPage() {
                                                 <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
                                                     <div>
                                                         <p className="text-xs text-slate-400 font-bold uppercase">Outstanding Balance</p>
-                                                        <p className="text-3xl font-black text-red-600 dark:text-red-500 mt-1">{currency.symbol} {l.outstandingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                                        <p className="text-3xl font-black text-red-600 dark:text-red-500 mt-1">{currency.symbol} {convert(l.outstandingBalance, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     </div>
                                                     <div className="w-48 bg-slate-100 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden">
                                                         <div className="bg-red-500 h-full" style={{ width: `${(1 - l.outstandingBalance / l.originalAmount) * 100}%` }}></div>
@@ -592,11 +592,11 @@ export default function LoansPage() {
                                                 <div className="flex justify-between mt-4">
                                                     <div>
                                                         <p className="text-[10px] text-slate-400 font-black uppercase">Outstanding</p>
-                                                        <p className="text-lg font-black">{currency.symbol} {c.usedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                                        <p className="text-lg font-black">{currency.symbol} {convert(c.usedAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-[10px] text-slate-400 font-black uppercase">Available</p>
-                                                        <p className="text-lg font-black text-emerald-500">{currency.symbol} {(c.totalLimit - c.usedAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                                        <p className="text-lg font-black text-emerald-500">{currency.symbol} {convert(c.totalLimit - c.usedAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -608,7 +608,7 @@ export default function LoansPage() {
                                                 </div>
                                                 {c.minimumDue > 0 && (
                                                     <div className="text-red-500 font-bold">
-                                                        Min: {currency.symbol}{c.minimumDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        Min: {currency.symbol}{convert(c.minimumDue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 )}
                                             </div>

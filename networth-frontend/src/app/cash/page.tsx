@@ -20,7 +20,7 @@ interface BankAccount {
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 
 export default function CashPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
     const [wallets, setWallets] = useState<BankAccount[]>([]);
@@ -119,17 +119,18 @@ export default function CashPage() {
         setActiveTab('Overview');
     };
 
-    const allocationData = [
-        { name: 'Bank Accounts', value: getTotalBank() },
-        { name: 'Cash Wallets', value: getTotalWallet() }
-    ].filter(item => item.value > 0);
+    const allocationData = React.useMemo(() => [
+        { name: 'Bank Accounts', value: convert(getTotalBank(), 'AED') },
+        { name: 'Cash Wallets', value: convert(getTotalWallet(), 'AED') }
+    ].filter(item => item.value > 0), [bankAccounts, wallets, convert]);
 
-    const accountsByType = [...bankAccounts, ...wallets].reduce((acc: any, curr) => {
+    const accountsByType = React.useMemo(() => [...bankAccounts, ...wallets].reduce((acc: any, curr) => {
         const existing = acc.find((item: any) => item.name === curr.accountType);
-        if (existing) existing.value += curr.balance;
-        else acc.push({ name: curr.accountType, value: curr.balance });
+        const convertedValue = convert(curr.balance, 'AED');
+        if (existing) existing.value += convertedValue;
+        else acc.push({ name: curr.accountType, value: convertedValue });
         return acc;
-    }, []);
+    }, []), [bankAccounts, wallets, convert]);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -164,19 +165,19 @@ export default function CashPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                     <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-8 text-white shadow-xl shadow-emerald-200 dark:shadow-none">
                         <div className="text-sm opacity-90 font-medium tracking-wide uppercase">Total Liquidity</div>
-                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {getTotalCash().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {convert(getTotalCash(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 flex items-center gap-2 text-xs bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm">
                             Across {bankAccounts.length + wallets.length} Records
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Institutional</div>
-                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {getTotalBank().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {convert(getTotalBank(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-2 text-xs text-emerald-500 font-bold">{bankAccounts.length} Bank Accounts</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Physical / Wallets</div>
-                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {getTotalWallet().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {convert(getTotalWallet(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-2 text-xs text-emerald-500 font-bold">{wallets.length} Cash Wallets</div>
                     </div>
                 </div>
@@ -269,7 +270,7 @@ export default function CashPage() {
                                     <div className="mt-auto">
                                         <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Available Balance</div>
                                         <div className="text-3xl font-bold text-slate-900 dark:text-white font-mono">
-                                            {currency.symbol}{account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {currency.symbol}{convert(account.balance, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                         <div className="mt-4 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase">{account.accountType}</span>

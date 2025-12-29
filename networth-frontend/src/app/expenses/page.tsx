@@ -37,7 +37,7 @@ interface Insights {
 }
 
 export default function ExpensesPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { refreshNetWorth } = useNetWorth();
     const [activeTab, setActiveTab] = useState('daily');
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -110,13 +110,13 @@ export default function ExpensesPage() {
 
     // Helpers
     const getToday = () => new Date().toISOString().split('T')[0];
-    const getTodayTotal = () => expenses.filter(e => e.date.split('T')[0] === getToday()).reduce((sum, e) => sum + e.amount, 0);
+    const getTodayTotal = () => convert(expenses.filter(e => e.date.split('T')[0] === getToday()).reduce((sum, e) => sum + e.amount, 0), 'AED');
     const getMonthTotal = () => {
         const now = new Date();
-        return expenses.filter(e => {
+        return convert(expenses.filter(e => {
             const expenseDate = new Date(e.date);
             return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
-        }).reduce((sum, e) => sum + e.amount, 0);
+        }).reduce((sum, e) => sum + e.amount, 0), 'AED');
     };
 
     const handleAddCategory = async () => {
@@ -274,7 +274,11 @@ export default function ExpensesPage() {
         return matchesSearch && matchesCategory && matchesTab;
     });
 
-    const categoryChartData = insights?.constByCategory ? Object.entries(insights.constByCategory).map(([name, value]) => ({ name, value })) : [];
+    const categoryChartData = React.useMemo(() => insights?.constByCategory ? Object.entries(insights.constByCategory).map(([name, value]) => ({ name, value: convert(value, 'AED') })) : [], [insights, convert]);
+    const trendData = React.useMemo(() => insights?.monthlyTrend.map(d => ({
+        ...d,
+        amount: convert(d.amount, 'AED')
+    })) || [], [insights, convert]);
     const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
 
     return (
@@ -310,7 +314,7 @@ export default function ExpensesPage() {
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-blue-500/20 group relative overflow-hidden">
                         <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
                         <div className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Daily Burn Rate</div>
-                        <div className="text-4xl font-black font-mono tracking-tighter">{currency.symbol} {getTodayTotal().toLocaleString()}</div>
+                        <div className="text-4xl font-black font-mono tracking-tighter">{currency.symbol} {getTodayTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 flex items-center gap-2 bg-white/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-md text-[10px] font-bold">
                             <span>🔥</span> LIVE UPDATES
                         </div>
@@ -318,7 +322,7 @@ export default function ExpensesPage() {
 
                     <div className="bg-white dark:bg-slate-800/80 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-xl border border-white dark:border-slate-700/50 group">
                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">This Month</div>
-                        <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">{currency.symbol} {getMonthTotal().toLocaleString()}</div>
+                        <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">{currency.symbol} {getMonthTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 flex items-center gap-2">
                             <div className="h-2 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                 <div className="h-full bg-blue-500 rounded-full w-[65%]"></div>
@@ -359,7 +363,7 @@ export default function ExpensesPage() {
                                 </h3>
                                 <div className="h-[350px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={insights?.monthlyTrend || []}>
+                                        <AreaChart data={trendData}>
                                             <defs>
                                                 <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -371,7 +375,7 @@ export default function ExpensesPage() {
                                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
                                             <Tooltip
                                                 contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
-                                                formatter={(val: number) => [`${currency.symbol} ${val.toLocaleString()}`, 'Spent']}
+                                                formatter={(val: number) => [`${currency.symbol} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Spent']}
                                             />
                                             <Area type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorAmount)" />
                                         </AreaChart>
@@ -401,7 +405,7 @@ export default function ExpensesPage() {
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                                                 ))}
                                             </Pie>
-                                            <Tooltip />
+                                            <Tooltip formatter={(val: number) => `${currency.symbol} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -420,7 +424,7 @@ export default function ExpensesPage() {
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-3xl p-5 border border-white/20">
                                         <div className="text-xs uppercase font-bold opacity-70 mb-1">Avg. Monthly</div>
-                                        <div className="text-2xl font-black">{currency.symbol} {((insights?.total || 0) / Math.max(1, (insights?.monthlyTrend?.length || 1))).toLocaleString()}</div>
+                                        <div className="text-2xl font-black">{currency.symbol} {convert((insights?.total || 0) / Math.max(1, (insights?.monthlyTrend?.length || 1)), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                     </div>
                                     <p className="text-sm opacity-80 leading-relaxed mt-10">
                                         Based on your spending patterns, you are managing your expenses effectively. Consider reducing your top sector by 10% to meet your savings goals.
@@ -492,7 +496,7 @@ export default function ExpensesPage() {
                                                         <div className="text-[10px] opacity-50 uppercase">{item.merchant || 'General'}</div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="font-mono font-bold text-blue-400">{item.amount} {item.currency}</div>
+                                                        <div className="font-mono font-bold text-blue-400">{convert(parseFloat(item.amount), item.currency || 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currency.code}</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -600,7 +604,7 @@ export default function ExpensesPage() {
                                                         const available = parseFloat(card.creditLimit) - parseFloat(card.usedAmount);
                                                         return (
                                                             <option key={card.id} value={card.id}>
-                                                                {card.cardName} - {card.bankName} (Available: {currency.symbol}{available.toLocaleString()})
+                                                                {card.cardName} - {card.bankName} (Available: {currency.symbol}{convert(parseFloat(card.creditLimit) - parseFloat(card.usedAmount), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                                             </option>
                                                         );
                                                     })}
@@ -719,7 +723,7 @@ export default function ExpensesPage() {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-2xl font-black text-rose-500 font-mono tracking-tighter">
-                                                        -{currency.symbol}{expense.amount.toLocaleString()}
+                                                        -{currency.symbol}{convert(expense.amount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                     <div className="flex gap-2 justify-end mt-6 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                                                         <button

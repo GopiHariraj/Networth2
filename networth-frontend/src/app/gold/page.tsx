@@ -29,7 +29,7 @@ const PURITY_COLORS: { [key: string]: string } = {
 const COLORS = ['#F59E0B', '#D97706', '#B45309', '#92400E', '#78350F', '#FBBF24'];
 
 export default function GoldPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [ornaments, setOrnaments] = useState<GoldOrnament[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -186,23 +186,24 @@ export default function GoldPage() {
     const getTotalValueList = () => ornaments.reduce((sum, ornament) => sum + ornament.totalValue, 0);
 
     // Chart Data
-    const purityDistribution = ornaments.reduce((acc: any, ornament) => {
+    const purityDistribution = React.useMemo(() => ornaments.reduce((acc: any, ornament) => {
         const existing = acc.find((item: any) => item.name === ornament.purity);
+        const convertedValue = convert(ornament.totalValue, 'AED');
         if (existing) {
-            existing.value += ornament.totalValue;
+            existing.value += convertedValue;
         } else {
-            acc.push({ name: ornament.purity, value: ornament.totalValue });
+            acc.push({ name: ornament.purity, value: convertedValue });
         }
         return acc;
-    }, []);
+    }, []), [ornaments, convert]);
 
-    const topOrnaments = [...ornaments]
+    const topOrnaments = React.useMemo(() => [...ornaments]
         .sort((a, b) => b.totalValue - a.totalValue)
         .slice(0, 5)
         .map(o => ({
             name: o.ornamentName?.length > 15 ? o.ornamentName.substring(0, 15) + '...' : (o.ornamentName || 'Unnamed Ornament'),
-            value: o.totalValue
-        }));
+            value: convert(o.totalValue, 'AED')
+        })), [ornaments, convert]);
 
     const renderInsights = () => (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -231,7 +232,7 @@ export default function GoldPage() {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                 />
                                 <Legend verticalAlign="bottom" height={36} />
@@ -254,7 +255,7 @@ export default function GoldPage() {
                                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} />
                                 <Tooltip
                                     cursor={{ fill: 'transparent' }}
-                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                 />
                                 <Bar dataKey="value" fill="#fbbf24" radius={[0, 8, 8, 0]} barSize={32} />
@@ -272,7 +273,7 @@ export default function GoldPage() {
                     <div className="space-y-2">
                         <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">Average Price per Gram</div>
                         <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                            {currency.symbol} {(ornaments.length > 0 ? getTotalValueList() / getTotalGrams() : 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            {currency.symbol} {convert((ornaments.length > 0 ? getTotalValueList() / getTotalGrams() : 0), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -317,7 +318,7 @@ export default function GoldPage() {
                     </div>
                     <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-7 text-white shadow-xl shadow-slate-900/20">
                         <div className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Portfolio Value</div>
-                        <div className="text-4xl font-black">{currency.symbol} {getTotalValueList().toLocaleString()}</div>
+                        <div className="text-4xl font-black">{currency.symbol} {convert(getTotalValueList(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-7 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Total Items</div>
@@ -382,11 +383,11 @@ export default function GoldPage() {
                                                             </span>
                                                         </td>
                                                         <td className="px-8 py-5 text-right">
-                                                            <div className="font-bold text-slate-900 dark:text-white">{ornament.grams} <span className="text-xs text-slate-400 font-medium">g</span></div>
-                                                            <div className="text-[10px] text-slate-400">{currency.symbol} {ornament.pricePerGram.toLocaleString()}/g</div>
+                                                            <div className="font-bold text-slate-900 dark:text-white">{ornaments.length > 0 ? ornament.grams : 0} <span className="text-xs text-slate-400 font-medium">g</span></div>
+                                                            <div className="text-[10px] text-slate-400">{currency.symbol} {convert(ornament.pricePerGram, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/g</div>
                                                         </td>
                                                         <td className="px-8 py-5 text-right">
-                                                            <div className="text-lg font-black text-amber-600 dark:text-amber-500">{currency.symbol} {ornament.totalValue.toLocaleString()}</div>
+                                                            <div className="text-lg font-black text-amber-600 dark:text-amber-500">{currency.symbol} {convert(ornament.totalValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         </td>
                                                         <td className="px-8 py-5 text-center">
                                                             <div className="flex gap-2 justify-center opacity-0 group-hover:opacity-100 transition-opacity">

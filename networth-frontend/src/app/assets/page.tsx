@@ -9,19 +9,19 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4'];
 
 export default function AssetsPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data } = useNetWorth();
 
-    const assetCategories = [
-        { name: 'Property', value: data.assets.property.totalValue, icon: '🏠', color: '#3b82f6', link: '/property' },
-        { name: 'Stocks', value: data.assets.stocks.totalValue, icon: '📈', color: '#10b981', link: '/stocks' },
-        { name: 'Mutual Funds', value: data.assets.mutualFunds.totalValue, icon: '📊', color: '#8b5cf6', link: '/mutual-funds' },
-        { name: 'Cash & Bank', value: data.assets.cash.totalCash, icon: '💰', color: '#f59e0b', link: '/cash' },
-        { name: 'Gold', value: data.assets.gold.totalValue, icon: '🥇', color: '#eab308', link: '/gold' },
-        { name: 'Bonds', value: data.assets.bonds.totalValue, icon: '📜', color: '#ec4899', link: '/bonds' }
-    ].filter(cat => cat.value > 0);
+    const assetCategories = React.useMemo(() => [
+        { name: 'Property', value: convert(data.assets.property.totalValue || 0, 'AED'), icon: '🏠', color: '#3b82f6', link: '/property' },
+        { name: 'Stocks', value: convert(data.assets.stocks.totalValue || 0, 'AED'), icon: '📈', color: '#10b981', link: '/stocks' },
+        { name: 'Mutual Funds', value: convert(data.assets.mutualFunds.totalValue || 0, 'AED'), icon: '📊', color: '#8b5cf6', link: '/mutual-funds' },
+        { name: 'Cash & Bank', value: convert(data.assets.cash.totalCash || 0, 'AED'), icon: '💰', color: '#f59e0b', link: '/cash' },
+        { name: 'Gold', value: convert(data.assets.gold.totalValue || 0, 'AED'), icon: '🥇', color: '#eab308', link: '/gold' },
+        { name: 'Bonds', value: convert(data.assets.bonds.totalValue || 0, 'AED'), icon: '📜', color: '#ec4899', link: '/bonds' }
+    ].filter(cat => cat.value > 0), [data, convert]);
 
-    const totalAssets = data.totalAssets;
+    const totalAssets = React.useMemo(() => convert(data.totalAssets || 0, 'AED'), [data.totalAssets, convert]);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -36,7 +36,7 @@ export default function AssetsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 p-8 rounded-3xl text-white shadow-xl shadow-blue-500/20">
                         <div className="text-blue-100 text-sm font-bold uppercase tracking-wider mb-2">Total Combined Assets</div>
-                        <div className="text-5xl font-black">{currency.symbol} {totalAssets.toLocaleString()}</div>
+                        <div className="text-5xl font-black">{currency.symbol} {totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-6 flex gap-4">
                             <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md text-sm font-bold">
                                 {assetCategories.length} Categories
@@ -81,7 +81,7 @@ export default function AssetsPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Legend iconType="circle" />
@@ -100,7 +100,7 @@ export default function AssetsPage() {
                                     <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `${currency.symbol}${value / 1000}k`} />
                                     <Tooltip
                                         cursor={{ fill: 'transparent' }}
-                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={50}>
@@ -141,7 +141,7 @@ export default function AssetsPage() {
                                 </div>
                                 <div className="text-right flex items-center gap-8">
                                     <div>
-                                        <div className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {cat.value.toLocaleString()}</div>
+                                        <div className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {cat.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                         <div className="text-emerald-500 text-sm font-bold mt-1 text-right">View Details →</div>
                                     </div>
                                 </div>

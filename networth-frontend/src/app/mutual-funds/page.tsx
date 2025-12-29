@@ -25,7 +25,7 @@ const FUND_TYPES = ['Equity', 'Debt', 'Hybrid', 'Index', 'Other'];
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function MutualFundsPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { refreshNetWorth } = useNetWorth();
     const [funds, setFunds] = useState<MutualFund[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -78,8 +78,8 @@ export default function MutualFundsPage() {
     const getGainLoss = (currentValue: number, invested: number) => currentValue - invested;
     const getPercentReturn = (gainLoss: number, invested: number) => invested > 0 ? (gainLoss / invested) * 100 : 0;
 
-    const totalValue = funds.reduce((sum, f) => sum + f.currentValue, 0);
-    const totalInvested = funds.reduce((sum, f) => sum + f.investedAmount, 0);
+    const totalValue = convert(funds.reduce((sum, f) => sum + f.currentValue, 0), 'AED');
+    const totalInvested = convert(funds.reduce((sum, f) => sum + f.investedAmount, 0), 'AED');
     const totalGainLoss = totalValue - totalInvested;
     const totalPercentReturn = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
 
@@ -184,19 +184,19 @@ export default function MutualFundsPage() {
         });
     };
 
-    const allocationData = FUND_TYPES.map(type => ({
+    const allocationData = React.useMemo(() => FUND_TYPES.map(type => ({
         name: type,
-        value: funds.filter(f => f.fundType === type)
-            .reduce((sum, f) => sum + f.currentValue, 0)
-    })).filter(d => d.value > 0);
+        value: convert(funds.filter(f => f.fundType === type)
+            .reduce((sum, f) => sum + f.currentValue, 0), 'AED')
+    })).filter(d => d.value > 0), [funds, convert]);
 
-    const topFundsData = [...funds]
+    const topFundsData = React.useMemo(() => [...funds]
         .sort((a, b) => b.currentValue - a.currentValue)
         .slice(0, 5)
         .map(f => ({
             name: f.fundName.length > 20 ? f.fundName.substring(0, 20) + '...' : f.fundName,
-            value: f.currentValue
-        }));
+            value: convert(f.currentValue, 'AED')
+        })), [funds, convert]);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -227,16 +227,16 @@ export default function MutualFundsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
                         <div className="text-sm opacity-90">Total Value</div>
-                        <div className="text-3xl font-bold mt-2">{currency.symbol} {totalValue.toLocaleString()}</div>
+                        <div className="text-3xl font-bold mt-2">{currency.symbol} {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500">Total Invested</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{currency.symbol} {totalInvested.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{currency.symbol} {totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className={`rounded-2xl p-6 shadow-sm border ${totalGainLoss >= 0 ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800'}`}>
                         <div className="text-sm text-slate-500">Gain/Loss</div>
                         <div className={`text-2xl font-bold mt-2 ${totalGainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {totalGainLoss >= 0 ? '+' : ''}{currency.symbol} {totalGainLoss.toLocaleString()}
+                            {totalGainLoss >= 0 ? '+' : ''}{currency.symbol} {totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                     <div className={`rounded-2xl p-6 shadow-sm border ${totalPercentReturn >= 0 ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800'}`}>
@@ -260,6 +260,7 @@ export default function MutualFundsPage() {
                         totalValue={totalValue}
                         COLORS={COLORS}
                         currency={currency}
+                        convert={convert}
                     />
                 )}
 
@@ -273,6 +274,7 @@ export default function MutualFundsPage() {
                         totalGainLoss={totalGainLoss}
                         totalPercentReturn={totalPercentReturn}
                         currency={currency}
+                        convert={convert}
                     />
                 )}
 
@@ -288,6 +290,7 @@ export default function MutualFundsPage() {
                         FUND_TYPES={FUND_TYPES}
                         currency={currency}
                         isLoading={isLoading}
+                        convert={convert}
                     />
                 )}
             </div>
@@ -296,7 +299,7 @@ export default function MutualFundsPage() {
 }
 
 // Current Value Tab Component
-function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, handleDelete, allocationData, topFundsData, totalValue, COLORS, currency }: any) {
+function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, handleDelete, allocationData, topFundsData, totalValue, COLORS, currency, convert }: any) {
     return (
         <div className="space-y-8">
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
@@ -336,7 +339,7 @@ function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, han
                                                     </div>
                                                     <div>
                                                         <div className="text-slate-400">Current NAV</div>
-                                                        <div className="font-semibold text-slate-700 dark:text-slate-300">{currency.symbol} {fund.currentNav.toLocaleString()}</div>
+                                                        <div className="font-semibold text-slate-700 dark:text-slate-300">{currency.symbol} {convert(fund.currentNav, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -349,19 +352,19 @@ function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, han
                                                 <div>
                                                     <div className="text-xs text-slate-400 mb-1">Current Value</div>
                                                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                                        {currency.symbol} {fund.currentValue.toLocaleString()}
+                                                        {currency.symbol} {convert(fund.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <div className="text-xs text-slate-400 mb-1">Invested</div>
                                                     <div className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                                                        {currency.symbol} {fund.investedAmount.toLocaleString()}
+                                                        {currency.symbol} {convert(fund.investedAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <div className="text-xs text-slate-400 mb-1">Gain/Loss</div>
                                                     <div className={`text-lg font-bold ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {gainLoss >= 0 ? '+' : ''}{currency.symbol} {gainLoss.toLocaleString()}
+                                                        {gainLoss >= 0 ? '+' : ''}{currency.symbol} {convert(gainLoss, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -416,7 +419,7 @@ function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, han
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                                    <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -435,7 +438,7 @@ function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, han
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis type="number" />
                                     <YAxis dataKey="name" type="category" width={120} />
-                                    <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString()}`} />
+                                    <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                     <Bar dataKey="value" fill="#3b82f6" />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -452,7 +455,7 @@ function CurrentValueTab({ funds, getGainLoss, getPercentReturn, handleEdit, han
 }
 
 // Profit & Loss Tab Component
-function ProfitLossTab({ funds, getGainLoss, getPercentReturn, totalInvested, totalValue, totalGainLoss, totalPercentReturn, currency }: any) {
+function ProfitLossTab({ funds, getGainLoss, getPercentReturn, totalInvested, totalValue, totalGainLoss, totalPercentReturn, currency, convert }: any) {
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="p-6 border-b border-slate-200 dark:border-slate-700">
@@ -488,13 +491,13 @@ function ProfitLossTab({ funds, getGainLoss, getPercentReturn, totalInvested, to
                                             <div className="text-xs text-slate-500">{fund.fundType}</div>
                                         </td>
                                         <td className="px-6 py-4 text-right text-slate-700 dark:text-slate-300">
-                                            {currency.symbol} {fund.investedAmount.toLocaleString()}
+                                            {currency.symbol} {convert(fund.investedAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className="px-6 py-4 text-right font-semibold text-slate-900 dark:text-white">
-                                            {currency.symbol} {fund.currentValue.toLocaleString()}
+                                            {currency.symbol} {convert(fund.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className={`px-6 py-4 text-right font-bold ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {gainLoss >= 0 ? '+' : ''}{currency.symbol} {gainLoss.toLocaleString()}
+                                            {gainLoss >= 0 ? '+' : ''}{currency.symbol} {convert(gainLoss, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
                                         <td className={`px-6 py-4 text-right font-bold ${percentReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {percentReturn >= 0 ? '+' : ''}{percentReturn.toFixed(2)}%
@@ -512,10 +515,10 @@ function ProfitLossTab({ funds, getGainLoss, getPercentReturn, totalInvested, to
                             })}
                             <tr className="bg-slate-100 dark:bg-slate-800 font-bold">
                                 <td className="px-6 py-4">TOTAL</td>
-                                <td className="px-6 py-4 text-right">{currency.symbol} {totalInvested.toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right">{currency.symbol} {totalValue.toLocaleString()}</td>
+                                <td className="px-6 py-4 text-right">{currency.symbol} {totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="px-6 py-4 text-right">{currency.symbol} {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 <td className={`px-6 py-4 text-right ${totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {totalGainLoss >= 0 ? '+' : ''}{currency.symbol} {totalGainLoss.toLocaleString()}
+                                    {totalGainLoss >= 0 ? '+' : ''}{currency.symbol} {totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                                 <td className={`px-6 py-4 text-right ${totalPercentReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {totalPercentReturn >= 0 ? '+' : ''}{totalPercentReturn.toFixed(2)}%
@@ -531,7 +534,7 @@ function ProfitLossTab({ funds, getGainLoss, getPercentReturn, totalInvested, to
 }
 
 // Add/Edit Fund Tab Component
-function AddEditFundTab({ formData, setFormData, editingId, handleSubmit, handleCancel, getGainLoss, getPercentReturn, FUND_TYPES, currency, isLoading }: any) {
+function AddEditFundTab({ formData, setFormData, editingId, handleSubmit, handleCancel, getGainLoss, getPercentReturn, FUND_TYPES, currency, isLoading, convert }: any) {
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 max-w-3xl mx-auto">
             <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white">
@@ -659,13 +662,13 @@ function AddEditFundTab({ formData, setFormData, editingId, handleSubmit, handle
                                 <div>
                                     <div className="text-slate-600 dark:text-slate-400">Current Value</div>
                                     <div className="font-bold text-slate-900 dark:text-white text-lg">
-                                        {currency.symbol} {currentVal.toLocaleString()}
+                                        {currency.symbol} {convert(currentVal, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                 </div>
                                 <div>
                                     <div className="text-slate-600 dark:text-slate-400">Gain/Loss</div>
                                     <div className={`font-bold text-lg ${gainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {gainLoss >= 0 ? '+' : ''}{currency.symbol} {gainLoss.toLocaleString()}
+                                        {gainLoss >= 0 ? '+' : ''}{currency.symbol} {convert(gainLoss, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                 </div>
                                 <div>

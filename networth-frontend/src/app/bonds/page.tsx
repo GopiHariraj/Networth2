@@ -18,7 +18,7 @@ interface Bond {
 }
 
 export default function BondsPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { refreshNetWorth } = useNetWorth();
     const [bonds, setBonds] = useState<Bond[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -177,25 +177,27 @@ export default function BondsPage() {
     };
 
     // Chart Data
-    const allocationByIssuer = bonds.reduce((acc: any, bond) => {
+    const allocationByIssuer = React.useMemo(() => bonds.reduce((acc: any, bond) => {
         const existing = acc.find((item: any) => item.name === bond.issuer);
+        const convertedValue = convert(bond.currentValue, 'AED');
         if (existing) {
-            existing.value += bond.currentValue;
+            existing.value += convertedValue;
         } else {
-            acc.push({ name: bond.issuer, value: bond.currentValue });
+            acc.push({ name: bond.issuer, value: convertedValue });
         }
         return acc;
-    }, []);
+    }, []), [bonds, convert]);
 
-    const allocationByType = bonds.reduce((acc: any, bond) => {
+    const allocationByType = React.useMemo(() => bonds.reduce((acc: any, bond) => {
         const existing = acc.find((item: any) => item.name === bond.name);
+        const convertedValue = convert(bond.currentValue, 'AED');
         if (existing) {
-            existing.value += bond.currentValue;
+            existing.value += convertedValue;
         } else {
-            acc.push({ name: bond.name, value: bond.currentValue });
+            acc.push({ name: bond.name, value: convertedValue });
         }
         return acc;
-    }, []);
+    }, []), [bonds, convert]);
 
     const COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'];
 
@@ -228,11 +230,11 @@ export default function BondsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
                         <div className="text-sm opacity-90 font-medium">Total Current Value</div>
-                        <div className="text-3xl font-bold mt-2 font-mono">{currency.symbol} {getTotalValue().toLocaleString()}</div>
+                        <div className="text-3xl font-bold mt-2 font-mono">{currency.symbol} {convert(getTotalValue(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium">Total Face Value</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2 font-mono">{currency.symbol} {getTotalFaceValue().toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2 font-mono">{currency.symbol} {convert(getTotalFaceValue(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium">Average Yield</div>
@@ -272,7 +274,7 @@ export default function BondsPage() {
                                                     ))}
                                                 </Pie>
                                                 <Tooltip
-                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                                 />
                                             </PieChart>
@@ -291,7 +293,7 @@ export default function BondsPage() {
                                                 <YAxis axisLine={false} tickLine={false} />
                                                 <Tooltip
                                                     cursor={{ fill: '#f1f5f9' }}
-                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                                 />
                                                 <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
@@ -355,9 +357,9 @@ export default function BondsPage() {
                                                         </td>
                                                         <td className="px-6 py-5 text-right">
                                                             <div className="font-bold text-slate-900 dark:text-white font-mono">
-                                                                {currency.symbol} {bond.currentValue.toLocaleString()}
+                                                                {currency.symbol} {convert(bond.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </div>
-                                                            <div className="text-[10px] text-slate-400 mt-1">Face: {currency.symbol}{bond.faceValue.toLocaleString()}</div>
+                                                            <div className="text-[10px] text-slate-400 mt-1">Face: {currency.symbol}{convert(bond.faceValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         </td>
                                                         <td className="px-6 py-5 text-center">
                                                             <div className={`text-sm font-bold ${isMatured ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>

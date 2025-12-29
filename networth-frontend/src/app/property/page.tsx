@@ -20,7 +20,7 @@ interface Property {
 }
 
 export default function PropertyPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [properties, setProperties] = useState<Property[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -189,12 +189,13 @@ export default function PropertyPage() {
         return investment === 0 ? 0 : ((getTotalGainLoss() / investment) * 100);
     };
 
-    const typeDistribution = properties.reduce((acc: any, p) => {
+    const typeDistribution = React.useMemo(() => properties.reduce((acc: any, p) => {
         const existing = acc.find((item: any) => item.name === p.propertyType);
-        if (existing) existing.value += p.currentValue;
-        else acc.push({ name: p.propertyType, value: p.currentValue });
+        const convertedValue = convert(p.currentValue, 'AED');
+        if (existing) existing.value += convertedValue;
+        else acc.push({ name: p.propertyType, value: convertedValue });
         return acc;
-    }, []);
+    }, []), [properties, convert]);
 
     const COLORS = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -231,19 +232,19 @@ export default function PropertyPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl p-8 text-white shadow-xl shadow-orange-200 dark:shadow-none">
                         <div className="text-sm opacity-90 font-medium tracking-wide uppercase">Portfolio Value</div>
-                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {getTotalValue().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-4xl font-bold mt-3 font-mono">{currency.symbol} {convert(getTotalValue(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 text-xs font-bold bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm italic">
                             {properties.length} Active Properties
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Investment</div>
-                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {getTotalInvestment().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-3xl font-bold text-slate-900 dark:text-white mt-3 font-mono">{currency.symbol} {convert(getTotalInvestment(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
                         <div className="text-sm text-slate-500 font-medium tracking-wide uppercase">Appreciation</div>
                         <div className={`text-3xl font-bold mt-3 font-mono ${getTotalGainLoss() >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {getTotalGainLoss() >= 0 ? '+' : ''}{currency.symbol} {getTotalGainLoss().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {getTotalGainLoss() >= 0 ? '+' : ''}{currency.symbol} {convert(getTotalGainLoss(), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div className={`mt-2 text-xs font-bold ${getTotalGainLoss() >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                             {getGainLossPercentage().toFixed(2)}% ROI
@@ -312,19 +313,19 @@ export default function PropertyPage() {
                                         <div className="grid grid-cols-2 gap-4 mt-auto">
                                             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                                                 <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Current Value</div>
-                                                <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">{currency.symbol}{p.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                <div className="text-lg font-bold text-slate-900 dark:text-white font-mono">{currency.symbol}{convert(p.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                             <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800/20">
                                                 <div className="text-[10px] text-emerald-600 font-bold uppercase mb-1">Appreciation</div>
                                                 <div className="text-lg font-bold text-emerald-600 font-mono">
-                                                    +{currency.symbol}{(p.currentValue - p.purchasePrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    +{currency.symbol}{convert((p.currentValue - p.purchasePrice), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                             <span>Bought: {new Date(p.purchaseDate).toLocaleDateString()}</span>
-                                            <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded italic">Cost: {currency.symbol}{p.purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            <span className="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded italic">Cost: {currency.symbol}{convert(p.purchasePrice, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -458,13 +459,13 @@ export default function PropertyPage() {
                                         <div className="flex justify-between items-end border-b border-white/10 pb-4">
                                             <span className="text-slate-400 uppercase text-xs font-bold tracking-widest">Average Value</span>
                                             <span className="text-2xl font-bold font-mono">
-                                                {currency.symbol}{(properties.length > 0 ? getTotalValue() / properties.length : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {currency.symbol}{convert((properties.length > 0 ? getTotalValue() / properties.length : 0), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-end border-b border-white/10 pb-4">
                                             <span className="text-slate-400 uppercase text-xs font-bold tracking-widest">Max Appreciation</span>
                                             <span className="text-2xl font-bold text-orange-400 font-mono">
-                                                {currency.symbol}{(properties.length > 0 ? Math.max(...properties.map(p => p.currentValue - p.purchasePrice)) : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {currency.symbol}{convert((properties.length > 0 ? Math.max(...properties.map(p => p.currentValue - p.purchasePrice)) : 0), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     </div>

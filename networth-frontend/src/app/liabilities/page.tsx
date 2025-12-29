@@ -9,23 +9,23 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 const COLORS = ['#ef4444', '#f59e0b', '#ec4899', '#f43f5e', '#fb7185'];
 
 export default function LiabilitiesPage() {
-    const { currency } = useCurrency();
+    const { currency, convert } = useCurrency();
     const { data } = useNetWorth();
 
-    const liabilityCategories = [
-        { name: 'Housing Loans', value: data.liabilities.loans.totalValue, icon: '🏠', color: '#ef4444', link: '/loans' },
-        { name: 'Credit Cards', value: data.liabilities.creditCards.totalValue, icon: '💳', color: '#f59e0b', link: '/loans' },
-    ].filter(cat => cat.value > 0);
+    const liabilityCategories = React.useMemo(() => [
+        { name: 'Housing Loans', value: convert(data.liabilities.loans.totalValue || 0, 'AED'), icon: '🏠', color: '#ef4444', link: '/loans' },
+        { name: 'Credit Cards', value: convert(data.liabilities.creditCards.totalValue || 0, 'AED'), icon: '💳', color: '#f59e0b', link: '/loans' },
+    ].filter(cat => cat.value > 0), [data, convert]);
 
-    const totalLiabilities = data.totalLiabilities;
+    const totalLiabilities = React.useMemo(() => convert(data.totalLiabilities || 0, 'AED'), [data.totalLiabilities, convert]);
 
-    // Calculate total EMI (if possible from context, otherwise mock or use totalValue for viz)
-    const emiDetails = [
-        { name: 'Loans EMI', value: data.liabilities.loans.items?.reduce((acc: number, l: any) => acc + parseFloat(l.emiAmount || 0), 0) || 0 },
-        { name: 'Card EMI/Min', value: data.liabilities.creditCards.items?.reduce((acc: number, c: any) => acc + parseFloat(c.notes?.match(/EMI: (.*)/)?.[1] || 0), 0) || 0 }
-    ];
+    // Calculate total EMI
+    const emiDetails = React.useMemo(() => [
+        { name: 'Loans EMI', value: convert(data.liabilities.loans.items?.reduce((acc: number, l: any) => acc + parseFloat(l.emiAmount || 0), 0) || 0, 'AED') },
+        { name: 'Card EMI/Min', value: convert(data.liabilities.creditCards.items?.reduce((acc: number, c: any) => acc + parseFloat(c.notes?.match(/EMI: (.*)/)?.[1] || 0), 0) || 0, 'AED') }
+    ], [data, convert]);
 
-    const totalEMI = emiDetails.reduce((acc, d) => acc + d.value, 0);
+    const totalEMI = React.useMemo(() => emiDetails.reduce((acc, d) => acc + d.value, 0), [emiDetails]);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -40,7 +40,7 @@ export default function LiabilitiesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                     <div className="md:col-span-2 bg-gradient-to-br from-red-600 via-rose-600 to-orange-600 p-8 rounded-3xl text-white shadow-xl shadow-red-500/20">
                         <div className="text-red-100 text-sm font-bold uppercase tracking-wider mb-2">Total Combined Liabilities</div>
-                        <div className="text-5xl font-black">{currency.symbol} {totalLiabilities.toLocaleString()}</div>
+                        <div className="text-5xl font-black">{currency.symbol} {totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-6 flex gap-4">
                             <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md text-sm font-bold">
                                 {liabilityCategories.length} Active Accounts
@@ -53,7 +53,7 @@ export default function LiabilitiesPage() {
                     <div className="bg-white dark:bg-slate-800 p-7 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
                         <div className="text-slate-400 text-sm font-bold uppercase tracking-wider">Monthly Commitment</div>
                         <div className="text-3xl font-black text-rose-600 mt-1">
-                            {currency.symbol} {totalEMI.toLocaleString()}
+                            {currency.symbol} {totalEMI.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-7 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
@@ -85,7 +85,7 @@ export default function LiabilitiesPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Value']}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Legend iconType="circle" />
@@ -104,7 +104,7 @@ export default function LiabilitiesPage() {
                                     <YAxis axisLine={false} tickLine={false} />
                                     <Tooltip
                                         cursor={{ fill: 'transparent' }}
-                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString()}`, 'Monthly Value']}
+                                        formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Monthly Value']}
                                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Bar dataKey="value" fill="#ef4444" radius={[8, 8, 0, 0]} barSize={60} />
@@ -141,7 +141,7 @@ export default function LiabilitiesPage() {
                                 </div>
                                 <div className="text-right flex items-center gap-8">
                                     <div>
-                                        <div className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {cat.value.toLocaleString()}</div>
+                                        <div className="text-2xl font-black text-slate-900 dark:text-white">{currency.symbol} {cat.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                         <div className="text-red-500 text-sm font-bold mt-1 text-right">Manage Details →</div>
                                     </div>
                                 </div>
