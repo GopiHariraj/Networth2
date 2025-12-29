@@ -27,19 +27,19 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ currency, dashboardData, fi
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <StatCard
                 label={`Income (${filterPeriod === 'Custom' ? 'Custom' : filterPeriod.replace('ly', '')})`}
-                value={`${currency.symbol} ${(dashboardData?.summary?.income || 0).toLocaleString()}`}
+                value={`${currency.symbol} ${(dashboardData?.summary?.income || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 trend="-"
                 trendUp={true}
             />
             <StatCard
                 label={`Expenses (${filterPeriod === 'Custom' ? 'Custom' : filterPeriod.replace('ly', '')})`}
-                value={`${currency.symbol} ${(dashboardData?.summary?.expense || 0).toLocaleString()}`}
+                value={`${currency.symbol} ${(dashboardData?.summary?.expense || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 trend="-"
                 trendUp={false}
             />
             <StatCard
                 label={`Net (${filterPeriod === 'Custom' ? 'Custom' : filterPeriod.replace('ly', '')})`}
-                value={`${currency.symbol} ${(dashboardData?.summary?.net || 0).toLocaleString()}`}
+                value={`${currency.symbol} ${(dashboardData?.summary?.net || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 trend="-"
                 trendUp={(dashboardData?.summary?.net || 0) >= 0}
             />
