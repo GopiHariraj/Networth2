@@ -156,13 +156,18 @@ export class TransactionsService {
   }
 
   async getDashboardData(userId: string) {
-    const [incomeResult, expenseResult, recentTransactions, categoryData] = await Promise.all([
+    const [incomeResult, transactionExpenseResult, expensesResult, recentTransactions, categoryData] = await Promise.all([
       this.prisma.transaction.aggregate({
         where: { userId, type: 'INCOME' },
         _sum: { amount: true },
       }),
       this.prisma.transaction.aggregate({
         where: { userId, type: 'EXPENSE' },
+        _sum: { amount: true },
+      }),
+      // Also get expenses from the dedicated expenses table
+      this.prisma.expense.aggregate({
+        where: { userId },
         _sum: { amount: true },
       }),
       this.prisma.transaction.findMany({
@@ -196,13 +201,17 @@ export class TransactionsService {
     }));
 
     const income = Number(incomeResult._sum.amount || 0);
-    const expense = Number(expenseResult._sum.amount || 0);
+    const transactionExpense = Number(transactionExpenseResult._sum.amount || 0);
+    const expensesTableTotal = Number(expensesResult._sum.amount || 0);
+
+    // Total expenses = expenses from transactions table + expenses from expenses table
+    const totalExpense = transactionExpense + expensesTableTotal;
 
     return {
       summary: {
         income,
-        expense,
-        net: income - expense,
+        expense: totalExpense,
+        net: income - totalExpense,
       },
       pieChartData,
       recentTransactions,
