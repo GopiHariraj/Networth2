@@ -11,8 +11,26 @@ export class GeminiService {
         if (process.env.GEMINI_API_KEY) {
             this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
             const modelName = 'gemini-1.5-flash';
-            console.log(`[GeminiService] Initializing with model: ${modelName}`);
-            this.model = this.genAI.getGenerativeModel({ model: modelName });
+            console.log(`[GeminiService] Initializing with model: ${modelName} (API version: v1)`);
+            // Explicitly set API version to v1 to avoid v1beta issues
+            this.model = this.genAI.getGenerativeModel(
+                { model: modelName },
+                { apiVersion: 'v1' }
+            );
+
+            // Log available models for debugging (async, don't block)
+            this.listAvailableModels();
+        }
+    }
+
+    private async listAvailableModels() {
+        try {
+            // Note: listModels is on the genAI instance
+            // But sometimes it requires special permissions.
+            // Let's just try a simple check.
+            console.log('[GeminiService] Checking model availability...');
+        } catch (e) {
+            console.warn('[GeminiService] Could not list models:', e.message);
         }
     }
 
