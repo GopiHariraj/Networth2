@@ -170,14 +170,19 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     const stockData = React.useMemo(() => {
         const items = stockItems.map((item: any) => ({
             id: item.id,
-            market: item.exchange,
-            stockName: item.name,
-            units: parseFloat(item.quantity),
+            symbol: item.symbol,
+            name: item.name,
+            exchange: item.exchange,
+            market: item.exchange, // Backward compatibility
+            stockName: item.name, // Backward compatibility
+            quantity: parseFloat(item.quantity),
+            units: parseFloat(item.quantity), // Backward compatibility
             avgPrice: parseFloat(item.avgPrice),
             currentPrice: parseFloat(item.currentPrice),
             currency: item.currency || 'AED',
             unitPrice: parseFloat(item.avgPrice), // Backward compatibility (Cost Basis)
             totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
+            transactions: item.transactions || [],
             purchaseDate: item.createdAt
         }));
         const total = items.reduce((sum, item) => {
