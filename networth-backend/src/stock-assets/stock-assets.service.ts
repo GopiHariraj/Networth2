@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import {
   CreateStockAssetDto,
@@ -7,39 +7,119 @@ import {
 
 @Injectable()
 export class StockAssetsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll(userId: string) {
-    return this.prisma.stockAsset.findMany({
+    const assets = await this.prisma.stockAsset.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        transactions: true,
+      },
+      orderBy: { symbol: 'asc' },
     });
+
+    // Optionally recalculate on the fly if needed, or trust stored values
+    return assets;
   }
 
   async findOne(id: string, userId: string) {
     return this.prisma.stockAsset.findFirst({
       where: { id, userId },
+      include: {
+        transactions: true,
+      },
     });
   }
 
   async create(userId: string, dto: CreateStockAssetDto) {
-    return this.prisma.stockAsset.create({
+    const asset = await this.prisma.stockAsset.create({
       data: {
         userId,
         ...dto,
       },
     });
+
+    // Create initial transaction if quantity > 0
+    if (Number(dto.quantity) > 0) {
+      await (this.prisma as any).stockTransaction.create({
+        data: {
+          stockAssetId: asset.id,
+          type: 'BUY',
+          quantity: dto.quantity,
+          price: dto.avgPrice,
+          date: new Date(),
+          notes: 'Initial balance',
+        },
+      });
+    }
+
+    return asset;
   }
 
   async update(id: string, userId: string, dto: UpdateStockAssetDto) {
     const asset = await this.findOne(id, userId);
     if (!asset) {
-      throw new Error('Stock asset not found');
+      throw new NotFoundException('Stock asset not found');
     }
 
-    return this.prisma.stockAsset.update({
+    const updated = await this.prisma.stockAsset.update({
       where: { id },
       data: dto,
+    });
+
+    // If quantity or avgPrice was manually updated, we might want to sync transactions,
+    // but for now we'll assume manual updates are for corrections.
+    return updated;
+  }
+
+  async addTransaction(userId: string, assetId: string, type: 'BUY' | 'SELL', quantity: number, price: number, date: Date, notes?: string) {
+    const asset = await this.findOne(assetId, userId);
+    if (!asset) throw new NotFoundException('Stock asset not found');
+
+    await (this.prisma as any).stockTransaction.create({
+      data: {
+        stockAssetId: assetId,
+        type,
+        quantity,
+        price,
+        date,
+        notes,
+      },
+    });
+
+    return this.recalculateAsset(assetId);
+  }
+
+  async recalculateAsset(assetId: string) {
+    const asset = await this.prisma.stockAsset.findUnique({
+      where: { id: assetId },
+      include: { transactions: true },
+    });
+
+    if (!asset) return null;
+
+    let totalBuyQty = 0;
+    let totalBuyCost = 0;
+    let totalSellQty = 0;
+
+    asset.transactions.forEach((tx: any) => {
+      if (tx.type === 'BUY') {
+        totalBuyQty += Number(tx.quantity);
+        totalBuyCost += Number(tx.quantity) * Number(tx.price);
+      } else if (tx.type === 'SELL') {
+        totalSellQty += Number(tx.quantity);
+      }
+    });
+
+    const netUnits = Math.max(0, totalBuyQty - totalSellQty);
+    const avgBuyPrice = totalBuyQty > 0 ? totalBuyCost / totalBuyQty : 0;
+
+    return this.prisma.stockAsset.update({
+      where: { id: assetId },
+      data: {
+        quantity: netUnits,
+        avgPrice: avgBuyPrice,
+      },
     });
   }
 

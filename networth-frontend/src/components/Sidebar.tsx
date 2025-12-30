@@ -14,6 +14,7 @@ const MENU_ITEMS = [
     { name: 'Property', icon: '🏠', path: '/property' },
     { name: 'Mutual Funds', icon: '📊', path: '/mutual-funds' },
     { name: 'Loans', icon: '💳', path: '/loans' },
+    { name: 'Insurance', icon: '🛡️', path: '/insurance' },
     { name: 'AI Analysis', icon: '✨', path: '/ai-analysis' },
     { name: 'Expenses', path: '/expenses', icon: '💵' },
 ];

@@ -20,6 +20,7 @@ import { GoalsModule } from './goals/goals.module';
 import { BondAssetsModule } from './bond-assets/bond-assets.module';
 import { MutualFundAssetsModule } from './mutual-fund-assets/mutual-fund-assets.module';
 import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
+import { InsuranceModule } from './insurance/insurance.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
     BondAssetsModule,
     MutualFundAssetsModule,
     ExchangeRateModule,
+    InsuranceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -89,6 +89,14 @@ export const loansApi = {
     delete: (id: string) => apiClient.delete(`/loans/${id}`),
 };
 
+// Insurance API
+export const insuranceApi = {
+    getAll: () => apiClient.get('/insurance'),
+    create: (data: any) => apiClient.post('/insurance', data),
+    update: (id: string, data: any) => apiClient.patch(`/insurance/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/insurance/${id}`),
+};
+
 // Export all APIs
 export const financialDataApi = {
     bankAccounts: bankAccountsApi,
@@ -102,4 +110,5 @@ export const financialDataApi = {
     expenses: expensesApi,
     expenseCategories: expenseCategoriesApi,
     goals: goalsApi,
+    insurance: insuranceApi,
 };
