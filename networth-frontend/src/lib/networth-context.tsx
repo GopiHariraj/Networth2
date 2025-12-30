@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { financialDataApi } from './api/financial-data';
+import { useCurrency } from './currency-context';
 
 interface AssetItem {
     id: string;
@@ -51,6 +52,7 @@ interface NetWorthContextType {
 const NetWorthContext = createContext<NetWorthContextType | undefined>(undefined);
 
 export function NetWorthProvider({ children }: { children: ReactNode }) {
+    const { convert, convertRaw } = useCurrency();
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
