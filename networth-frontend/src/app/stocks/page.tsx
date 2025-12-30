@@ -59,10 +59,14 @@ export default function StocksPage() {
     useEffect(() => {
         if (data.assets.stocks.items) {
             setStocks(data.assets.stocks.items.map((s: any) => ({
-                ...s,
+                id: s.id,
+                symbol: s.symbol || '',
+                name: s.name || '',
+                exchange: s.exchange || '',
                 quantity: parseFloat(s.quantity) || 0,
                 avgPrice: parseFloat(s.avgPrice) || 0,
                 currentPrice: parseFloat(s.currentPrice) || 0,
+                currency: s.currency || 'AED',
                 transactions: s.transactions || []
             })));
             setLoading(false);
