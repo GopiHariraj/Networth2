@@ -156,7 +156,7 @@ export class TransactionsService {
   }
 
   async getDashboardData(userId: string) {
-    const [incomeResult, transactionExpenseResult, expensesResult, recentTransactions, categoryData] = await Promise.all([
+    const [incomeResult, transactionExpenseResult, expensesResult, recentTransactions, categoryData, expenseCategoryData, recentExpenses] = await Promise.all([
       this.prisma.transaction.aggregate({
         where: { userId, type: 'INCOME' },
         _sum: { amount: true },
@@ -174,12 +174,24 @@ export class TransactionsService {
         where: { userId },
         include: { category: true },
         orderBy: { date: 'desc' },
-        take: 5,
+        take: 10, // Get more to ensure we have enough after merge
       }),
       this.prisma.transaction.groupBy({
         by: ['categoryId'],
         where: { userId, type: 'EXPENSE' },
         _sum: { amount: true },
+      }),
+      // NEW: Group expenses by category from expense table
+      this.prisma.expense.groupBy({
+        by: ['category'],
+        where: { userId },
+        _sum: { amount: true },
+      }),
+      // NEW: Recent expenses from expense table
+      this.prisma.expense.findMany({
+        where: { userId },
+        orderBy: { date: 'desc' },
+        take: 10,
       }),
     ]);
 
@@ -195,10 +207,27 @@ export class TransactionsService {
       return acc;
     }, {});
 
-    const pieChartData = categoryData.map(c => ({
+    // Combine pie chart data from both transaction and expense tables
+    const transactionPieData = categoryData.map(c => ({
       name: categoryMap[c.categoryId as string] || 'Uncategorized',
       value: Number(c._sum.amount),
     }));
+
+    const expensePieData = expenseCategoryData.map(e => ({
+      name: e.category || 'Uncategorized',
+      value: Number(e._sum.amount),
+    }));
+
+    // Merge categories with same names
+    const pieChartData = [...transactionPieData, ...expensePieData].reduce((acc: any[], item) => {
+      const existing = acc.find(x => x.name === item.name);
+      if (existing) {
+        existing.value += item.value;
+      } else {
+        acc.push({ name: item.name, value: item.value });
+      }
+      return acc;
+    }, []);
 
     const income = Number(incomeResult._sum.amount || 0);
     const transactionExpense = Number(transactionExpenseResult._sum.amount || 0);
@@ -207,6 +236,22 @@ export class TransactionsService {
     // Total expenses = expenses from transactions table + expenses from expenses table
     const totalExpense = transactionExpense + expensesTableTotal;
 
+    // Combine and sort recent transactions from both sources
+    const combinedRecentTransactions = [
+      ...recentTransactions,
+      ...recentExpenses.map(e => ({
+        id: e.id,
+        amount: e.amount,
+        description: e.notes || e.merchant || 'Expense',
+        merchant: e.merchant,
+        date: e.date,
+        type: 'EXPENSE' as const,
+        category: { name: e.category || 'Uncategorized' },
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
     return {
       summary: {
         income,
@@ -214,7 +259,7 @@ export class TransactionsService {
         net: income - totalExpense,
       },
       pieChartData,
-      recentTransactions,
+      recentTransactions: combinedRecentTransactions,
     };
   }
 
