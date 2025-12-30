@@ -19,7 +19,7 @@ interface Stock {
 }
 
 export default function StocksPage() {
-    const { currency, convert } = useCurrency();
+    const { currency, convert, convertRaw } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
     const [stocks, setStocks] = useState<Stock[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -143,8 +143,8 @@ export default function StocksPage() {
         }
     };
 
-    const getTotalPortfolioValue = () => stocks.reduce((sum, stock) => sum + stock.totalValue, 0);
-    const getTotalInvested = () => stocks.reduce((sum, stock) => sum + (stock.units * stock.unitPrice), 0);
+    const getTotalPortfolioValue = () => stocks.reduce((sum, stock) => sum + convertRaw(stock.totalValue, stock.currency, 'AED'), 0);
+    const getTotalInvested = () => stocks.reduce((sum, stock) => sum + convertRaw(stock.units * stock.unitPrice, stock.currency, 'AED'), 0);
     const getTotalGainLoss = () => getTotalPortfolioValue() - getTotalInvested();
     const getOverallReturn = () => {
         const invested = getTotalInvested();
