@@ -5,7 +5,6 @@ import { useCurrency } from '../../lib/currency-context';
 import { useNetWorth } from '../../lib/networth-context';
 import { financialDataApi } from '../../lib/api/financial-data';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
-import Sidebar from '../../components/Sidebar';
 
 interface StockTransaction {
     id: string;
@@ -150,10 +149,8 @@ export default function StocksPage() {
     const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-            <Sidebar />
-
-            <main className="flex-1 md:ml-64 p-4 md:p-8">
+        <>
+            <main className="p-4 md:p-8">
                 <div className="max-w-7xl mx-auto">
                     <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
@@ -461,6 +458,6 @@ export default function StocksPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }

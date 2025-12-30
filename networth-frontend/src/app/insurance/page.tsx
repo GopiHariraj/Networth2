@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { financialDataApi } from '../../lib/api/financial-data';
 import { useCurrency } from '../../lib/currency-context';
-import Sidebar from '../../components/Sidebar';
 import PolicyModal from '../../components/insurance/PolicyModal';
 
 export default function InsurancePage() {
@@ -52,10 +51,8 @@ export default function InsurancePage() {
     }, 0);
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-            <Sidebar />
-
-            <main className="flex-1 md:ml-64 p-4 md:p-8">
+        <>
+            <main className="p-4 md:p-8">
                 <div className="max-w-7xl mx-auto">
                     <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <div>
@@ -132,8 +129,8 @@ export default function InsurancePage() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${p.status === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                                            p.status === 'Expired' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
-                                                                'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
+                                                        p.status === 'Expired' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
+                                                            'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
                                                         }`}>
                                                         {p.status}
                                                     </span>
@@ -174,6 +171,6 @@ export default function InsurancePage() {
                 onSuccess={fetchPolicies}
                 policy={selectedPolicy}
             />
-        </div>
+        </>
     );
 }
