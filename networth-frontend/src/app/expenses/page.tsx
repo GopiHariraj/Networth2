@@ -16,6 +16,7 @@ interface Expense {
     paymentMethod?: string;
     accountId?: string;
     creditCardId?: string;
+    toBankAccountId?: string;
     recurrence: string;
     notes?: string;
     source: string;
@@ -43,6 +44,7 @@ export default function ExpensesPage() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [categories, setCategories] = useState<ExpenseCategory[]>([]);
     const [creditCards, setCreditCards] = useState<any[]>([]);
+    const [bankAccounts, setBankAccounts] = useState<any[]>([]);
     const [insights, setInsights] = useState<Insights | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +61,7 @@ export default function ExpensesPage() {
         paymentMethod: 'cash',
         accountId: '',
         creditCardId: '',
+        toBankAccountId: '',
         recurrence: 'one-time',
         notes: ''
     });
@@ -79,11 +82,12 @@ export default function ExpensesPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [expRes, catRes, insRes, ccRes] = await Promise.all([
+            const [expRes, catRes, insRes, ccRes, baRes] = await Promise.all([
                 financialDataApi.expenses.getAll(),
                 financialDataApi.expenseCategories.getAll(),
                 financialDataApi.expenses.getInsights(),
                 financialDataApi.creditCards.getAll(),
+                financialDataApi.bankAccounts.getAll(),
             ]);
 
             setExpenses(expRes.data.map((e: any) => ({
@@ -93,6 +97,7 @@ export default function ExpensesPage() {
             setCategories(catRes.data);
             setInsights(insRes.data);
             setCreditCards(ccRes.data);
+            setBankAccounts(baRes.data);
 
             if (catRes.data.length > 0 && !editingId) {
                 setFormData(prev => ({ ...prev, category: catRes.data[0].name }));
@@ -142,7 +147,9 @@ export default function ExpensesPage() {
         const payload = {
             ...formData,
             amount: parseFloat(formData.amount),
-            creditCardId: formData.paymentMethod === 'credit_card' ? formData.creditCardId || null : null,
+            creditCardId: (formData.paymentMethod === 'credit_card' || formData.paymentMethod === 'bank') ? formData.creditCardId || null : null,
+            toBankAccountId: (formData.paymentMethod === 'bank') ? formData.toBankAccountId || null : null,
+            accountId: (formData.paymentMethod !== 'credit_card') ? formData.accountId || null : null,
             periodTag: 'monthly'
         };
 
@@ -165,6 +172,7 @@ export default function ExpensesPage() {
                 paymentMethod: 'cash',
                 accountId: '',
                 creditCardId: '',
+                toBankAccountId: '',
                 recurrence: 'one-time',
                 notes: ''
             });
@@ -184,6 +192,7 @@ export default function ExpensesPage() {
             paymentMethod: expense.paymentMethod || 'cash',
             accountId: expense.accountId || '',
             creditCardId: expense.creditCardId || '',
+            toBankAccountId: (expense as any).toBankAccountId || '',
             recurrence: expense.recurrence,
             notes: expense.notes || ''
         });
@@ -589,7 +598,45 @@ export default function ExpensesPage() {
                                             </select>
                                         </div>
 
-                                        {/* Credit Card Dropdown - Shown only when payment method is credit_card */}
+                                        {/* Dynamic Selectors Based on Payment Method */}
+                                        {formData.paymentMethod === 'cash' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">Select Wallet</label>
+                                                <select
+                                                    value={formData.accountId}
+                                                    onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold appearance-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                    required={formData.paymentMethod === 'cash'}
+                                                >
+                                                    <option value="">Choose a wallet...</option>
+                                                    {bankAccounts.filter(a => a.accountType === 'Wallet').map(acc => (
+                                                        <option key={acc.id} value={acc.id}>
+                                                            {acc.accountName} (Balance: {currency.symbol}{convert(acc.balance, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {formData.paymentMethod === 'debit_card' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">Select Bank Account</label>
+                                                <select
+                                                    value={formData.accountId}
+                                                    onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold appearance-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                    required={formData.paymentMethod === 'debit_card'}
+                                                >
+                                                    <option value="">Choose an account...</option>
+                                                    {bankAccounts.filter(a => a.accountType !== 'Wallet').map(acc => (
+                                                        <option key={acc.id} value={acc.id}>
+                                                            {acc.accountName} - {acc.bankName} (Balance: {currency.symbol}{convert(acc.balance, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
                                         {formData.paymentMethod === 'credit_card' && (
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">Select Credit Card</label>
@@ -604,7 +651,7 @@ export default function ExpensesPage() {
                                                         const available = parseFloat(card.creditLimit) - parseFloat(card.usedAmount);
                                                         return (
                                                             <option key={card.id} value={card.id}>
-                                                                {card.cardName} - {card.bankName} (Available: {currency.symbol}{convert(parseFloat(card.creditLimit) - parseFloat(card.usedAmount), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                                {card.cardName} - {card.bankName} (Available: {currency.symbol}{convert(available, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                                             </option>
                                                         );
                                                     })}
@@ -615,6 +662,56 @@ export default function ExpensesPage() {
                                                     </p>
                                                 )}
                                             </div>
+                                        )}
+
+                                        {formData.paymentMethod === 'bank' && (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">From Account (Sender)</label>
+                                                    <select
+                                                        value={formData.accountId}
+                                                        onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                                                        className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold appearance-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        required={formData.paymentMethod === 'bank'}
+                                                    >
+                                                        <option value="">Choose sender...</option>
+                                                        {bankAccounts.filter(a => a.accountType !== 'Wallet').map(acc => (
+                                                            <option key={acc.id} value={acc.id}>
+                                                                {acc.accountName} (Bal: {currency.symbol}{convert(acc.balance, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2">To Account / Card (Recipient)</label>
+                                                    <select
+                                                        value={formData.toBankAccountId || formData.creditCardId}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            const isCC = creditCards.some(c => c.id === val);
+                                                            if (isCC) {
+                                                                setFormData({ ...formData, creditCardId: val, toBankAccountId: '' });
+                                                            } else {
+                                                                setFormData({ ...formData, toBankAccountId: val, creditCardId: '' });
+                                                            }
+                                                        }}
+                                                        className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold appearance-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        required={formData.paymentMethod === 'bank'}
+                                                    >
+                                                        <option value="">Choose recipient...</option>
+                                                        <optgroup label="Bank Accounts">
+                                                            {bankAccounts.filter(a => a.accountType !== 'Wallet' && a.id !== formData.accountId).map(acc => (
+                                                                <option key={acc.id} value={acc.id}>{acc.accountName}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                        <optgroup label="Credit Cards (Payment)">
+                                                            {creditCards.map(card => (
+                                                                <option key={card.id} value={card.id}>{card.cardName} (Used: {currency.symbol}{convert(card.usedAmount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    </select>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
 

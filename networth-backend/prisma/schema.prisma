@@ -144,6 +144,7 @@ model BankAccount {
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
+  toExpenses    Expense[] @relation("ToBankAccount")
 
   @@index([userId])
   @@map("bank_accounts")
@@ -319,6 +320,7 @@ model Expense {
   merchant      String?
   paymentMethod String?  // cash, bank, credit_card
   accountId     String?
+  toBankAccountId String? // For bank transfers
   creditCardId  String?  // Link to CreditCard for credit_card payments
   recurrence    String   @default("one-time") // one-time, monthly, yearly
   periodTag     String   // daily, monthly, yearly
@@ -329,8 +331,9 @@ model Expense {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  creditCard    CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditCard    CreditCard?  @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  toBankAccount BankAccount? @relation("ToBankAccount", fields: [toBankAccountId], references: [id], onDelete: SetNull)
 
   @@index([userId, date])
   @@index([userId, category])
