@@ -111,17 +111,48 @@ export class AuthService {
       return null;
     }
 
+    // Check if account is locked out
+    if (user.isDisabled) {
+      console.log(`[AuthService] User account is disabled: ${user.id}`);
+      throw new UnauthorizedException('Account disabled. Please contact support.');
+    }
+
     // For real DB users with argon2 hashed passwords
     if (user.passwordHash) {
       try {
         console.log(`[AuthService] Verifying password with argon2 for user: ${user.id}`);
         const isValid = await argon2.verify(user.passwordHash, pass);
         console.log(`[AuthService] Password verification result for ${user.id}: ${isValid}`);
+
         if (isValid) {
+          // Reset failed attempts on success
+          if (user.failedLoginAttempts > 0) {
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: { failedLoginAttempts: 0 },
+            });
+          }
           const { passwordHash, ...result } = user as any;
           return result;
+        } else {
+          // Increment failed attempts
+          const newAttempts = (user.failedLoginAttempts || 0) + 1;
+          const isNowDisabled = newAttempts >= 5;
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: newAttempts,
+              isDisabled: isNowDisabled
+            },
+          });
+
+          if (isNowDisabled) {
+            throw new UnauthorizedException('Account disabled due to too many failed attempts.');
+          }
+          return null;
         }
       } catch (e) {
+        if (e instanceof UnauthorizedException) throw e;
         console.error(`[AuthService] Argon2 verification failed for user ${user.id}:`, e);
         return null;
       }

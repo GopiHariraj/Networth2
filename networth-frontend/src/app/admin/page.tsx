@@ -141,6 +141,8 @@ export default function AdminPage() {
                 email: editingUser.email,
                 role: editingUser.role,
                 isActive: editingUser.isActive,
+                isDisabled: editingUser.isDisabled,
+                failedLoginAttempts: editingUser.isDisabled ? undefined : 0, // Reset to 0 if disabling the lock
                 password: editingUser.newPassword || undefined
             });
             setMessage(`✅ Success: User updated!`);
@@ -386,14 +388,21 @@ export default function AdminPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <button
-                                                    onClick={() => handleToggleStatus(u)}
-                                                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight transition-all ${u.isActive
-                                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                        : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
-                                                >
-                                                    {u.isActive ? 'Active' : 'Disabled'}
-                                                </button>
+                                                <div className="flex flex-col gap-1">
+                                                    <button
+                                                        onClick={() => handleToggleStatus(u)}
+                                                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight transition-all w-fit ${u.isActive
+                                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                            : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                                                    >
+                                                        {u.isActive ? 'Active' : 'Disabled'}
+                                                    </button>
+                                                    {u.isDisabled && (
+                                                        <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-tight w-fit">
+                                                            Locked ({u.failedLoginAttempts} attempts)
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-5 text-right whitespace-nowrap">
                                                 <div className="flex gap-2 justify-end">
@@ -560,6 +569,18 @@ export default function AdminPage() {
                                     <option value="true">Active</option>
                                     <option value="false">Disabled</option>
                                 </select>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Account Lock Status</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser({ ...editingUser, isDisabled: !editingUser.isDisabled, failedLoginAttempts: editingUser.isDisabled ? 0 : 5 })}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight transition-all ${editingUser.isDisabled
+                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                                >
+                                    {editingUser.isDisabled ? 'Locked (click to unlock)' : 'Healthy'}
+                                </button>
                             </div>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 font-bold rounded-2xl">Cancel</button>

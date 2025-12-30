@@ -8,6 +8,8 @@ export class UserResponseDto {
   role: Role;
   currency: string;
   isActive: boolean;
+  isDisabled: boolean;
+  failedLoginAttempts: number;
   forceChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -25,6 +27,8 @@ export class UserResponseDto {
       role: user.role,
       currency: user.currency,
       isActive: user.isActive,
+      isDisabled: user.isDisabled,
+      failedLoginAttempts: user.failedLoginAttempts,
       forceChangePassword: user.forceChangePassword,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

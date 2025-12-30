@@ -35,4 +35,11 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   password?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isDisabled?: boolean;
+
+  @IsOptional()
+  failedLoginAttempts?: number;
 }

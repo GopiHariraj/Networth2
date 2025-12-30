@@ -207,6 +207,12 @@ export class UsersService {
         ...(updateUserDto.isActive !== undefined && {
           isActive: updateUserDto.isActive,
         }),
+        ...(updateUserDto.isDisabled !== undefined && {
+          isDisabled: updateUserDto.isDisabled,
+        }),
+        ...(updateUserDto.failedLoginAttempts !== undefined && {
+          failedLoginAttempts: updateUserDto.failedLoginAttempts,
+        }),
         ...(hashedPassword && { passwordHash: hashedPassword }),
       },
     });

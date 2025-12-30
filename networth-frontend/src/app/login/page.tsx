@@ -24,7 +24,12 @@ export default function LoginPage() {
             login(access_token, user);
             // Context login will handle the redirect
         } catch (err: any) {
-            setError(err.response?.data?.message || err.message || 'Invalid credentials');
+            const message = err.response?.data?.message || err.message || 'Invalid credentials';
+            if (message.includes('Account disabled')) {
+                setError('5 Failed Attempts: Account disabled. Contact admin support to activate and reset password.');
+            } else {
+                setError(message);
+            }
         } finally {
             setLoading(false);
         }
