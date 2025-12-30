@@ -181,6 +181,7 @@ export class AuthService {
         role: user.role,
         currency: user.currency,
         forceChangePassword: user.forceChangePassword,
+        moduleVisibility: user.moduleVisibility,
       },
     };
   }
