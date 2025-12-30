@@ -153,20 +153,22 @@ export default function StocksPage() {
 
     const marketDistribution = React.useMemo(() => stocks.reduce((acc: any, s) => {
         const existing = acc.find((item: any) => item.name === s.exchange);
-        const convertedValue = convert(s.totalValue, 'AED');
-        if (existing) existing.value += convertedValue;
-        else acc.push({ name: s.exchange, value: convertedValue });
+        // Normalize each stock to AED for consistent summing
+        const rawAEDValue = convertRaw(s.totalValue, s.currency, 'AED');
+        if (existing) existing.value += rawAEDValue;
+        else acc.push({ name: s.exchange, value: rawAEDValue });
         return acc;
-    }, []), [stocks, convert]);
+    }, []), [stocks, convertRaw]);
 
     const chartData = React.useMemo(() =>
         stocks
-            .sort((a, b) => b.totalValue - a.totalValue)
             .map(s => ({
                 stockName: s.stockName,
-                totalValue: convert(s.totalValue, 'AED')
-            })),
-        [stocks, convert]
+                // Store in AED for sorting and later conversion at display time
+                rawAEDValue: convertRaw(s.totalValue, s.currency, 'AED')
+            }))
+            .sort((a, b) => b.rawAEDValue - a.rawAEDValue),
+        [stocks, convertRaw]
     );
 
     const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
@@ -458,7 +460,7 @@ export default function StocksPage() {
                                                     ))}
                                                 </Pie>
                                                 <Tooltip
-                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
+                                                    formatter={(value: number) => [`${currency.symbol} ${convert(value, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
                                                 />
                                                 <Legend iconType="circle" />
@@ -484,10 +486,10 @@ export default function StocksPage() {
                                                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                                 <Tooltip
                                                     cursor={{ fill: '#f1f5f9' }}
-                                                    formatter={(value: number) => [`${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
+                                                    formatter={(value: number) => [`${currency.symbol} ${convert(value, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Value']}
                                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
                                                 />
-                                                <Bar dataKey="totalValue" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                                                <Bar dataKey="rawAEDValue" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     ) : (
