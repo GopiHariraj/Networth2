@@ -11,6 +11,7 @@ interface User {
     firstName?: string;
     lastName?: string;
     role?: string;
+    currency?: string;
     forceChangePassword?: boolean;
 }
 

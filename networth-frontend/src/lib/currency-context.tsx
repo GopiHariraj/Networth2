@@ -46,26 +46,58 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
     // Load user and currency preference
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-            try {
-                const user = JSON.parse(savedUser);
-                const userId = user.id;
-                setCurrentUserId(userId);
+        const loadInitialCurrency = () => {
+            const savedUser = localStorage.getItem('user');
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    const userId = user.id;
+                    setCurrentUserId(userId);
 
-                // Load user-specific currency preference
-                const savedCurrencyCode = localStorage.getItem(`preferredCurrency_${userId}`);
-                if (savedCurrencyCode) {
-                    const savedCurrency = CURRENCIES.find(c => c.code === savedCurrencyCode);
-                    if (savedCurrency) {
-                        setCurrencyState(savedCurrency);
+                    // Priority 1: User object from login/me response
+                    if (user.currency) {
+                        const userCurrency = CURRENCIES.find(c => c.code === user.currency);
+                        if (userCurrency) {
+                            setCurrencyState(userCurrency);
+                            return;
+                        }
                     }
+
+                    // Priority 2: User-specific currency preference in localStorage
+                    const savedCurrencyCode = localStorage.getItem(`preferredCurrency_${userId}`);
+                    if (savedCurrencyCode) {
+                        const savedCurrency = CURRENCIES.find(c => c.code === savedCurrencyCode);
+                        if (savedCurrency) {
+                            setCurrencyState(savedCurrency);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading user currency preference:', e);
                 }
-            } catch (e) {
-                console.error('Error loading user currency preference:', e);
-                setCurrencyState(CURRENCIES[0]);
             }
-        }
+            // Default: AED
+            setCurrencyState(CURRENCIES[0]);
+        };
+
+        loadInitialCurrency();
+
+        // Listen for login/logout events
+        const handleLogin = (e: any) => {
+            loadInitialCurrency();
+        };
+
+        const handleLogout = () => {
+            resetCurrency();
+        };
+
+        window.addEventListener('userLogin', handleLogin);
+        window.addEventListener('userLogout', handleLogout);
+
+        return () => {
+            window.removeEventListener('userLogin', handleLogin);
+            window.removeEventListener('userLogout', handleLogout);
+        };
     }, []);
 
     // Fetch exchange rates when currency changes or on mount
@@ -134,6 +166,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         // Save with user-specific key
         if (currentUserId) {
             localStorage.setItem(`preferredCurrency_${currentUserId}`, newCurrency.code);
+
+            // Also update the user object in localStorage for consistency
+            const savedUser = localStorage.getItem('user');
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    user.currency = newCurrency.code;
+                    localStorage.setItem('user', JSON.stringify(user));
+                } catch (e) {
+                    console.error('Failed to update user object with new currency:', e);
+                }
+            }
 
             // Update on backend
             try {
