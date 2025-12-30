@@ -37,6 +37,7 @@ export default function StocksPage() {
     const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
     const [showTransactionModal, setShowTransactionModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         symbol: '',
@@ -73,6 +74,20 @@ export default function StocksPage() {
         }
     }, [data.assets.stocks.items]);
 
+    const handleEdit = (stock: Stock) => {
+        setEditingId(stock.id);
+        setFormData({
+            symbol: stock.symbol,
+            name: stock.name,
+            exchange: stock.exchange,
+            quantity: stock.quantity.toString(),
+            avgPrice: stock.avgPrice.toString(),
+            currentPrice: stock.currentPrice.toString(),
+            currency: stock.currency || 'AED'
+        });
+        setActiveTab('Add Asset');
+    };
+
     const handleAddStock = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -84,8 +99,15 @@ export default function StocksPage() {
                 currentPrice: parseFloat(formData.currentPrice || formData.avgPrice),
                 currency: currency.code
             };
-            await financialDataApi.stockAssets.create(stockData);
+
+            if (editingId) {
+                await financialDataApi.stockAssets.update(editingId, stockData);
+                setEditingId(null);
+            } else {
+                await financialDataApi.stockAssets.create(stockData);
+            }
             await refreshNetWorth();
+            setEditingId(null);
             setFormData({
                 symbol: '',
                 name: '',
@@ -256,6 +278,13 @@ export default function StocksPage() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => handleEdit(s)}
+                                                                className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors"
+                                                                title="Edit Stock"
+                                                            >
+                                                                ✏️
+                                                            </button>
                                                             <button
                                                                 onClick={() => { setSelectedStock(s); setShowTransactionModal(true); }}
                                                                 className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
