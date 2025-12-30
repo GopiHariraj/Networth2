@@ -45,7 +45,7 @@ export class ExpensesService {
                     source: dto.source || 'manual',
                     receiptUrl: dto.receiptUrl,
                     confidence: dto.confidence,
-                },
+                } as any,
             });
 
             // 2. Adjust balances based on payment method
@@ -88,7 +88,7 @@ export class ExpensesService {
         });
     }
 
-    async update(id: string, dto: UpdateExpenseDto, userId: string) {
+    async update(id: string, userId: string, dto: UpdateExpenseDto) {
         const oldExpense = await this.findOne(id, userId);
         if (!oldExpense) {
             throw new NotFoundException('Expense not found');
@@ -108,9 +108,9 @@ export class ExpensesService {
                     data: { balance: { increment: oldAmount } },
                 });
             } else if (oldExpense.paymentMethod === 'bank' && oldExpense.accountId) {
-                if (oldExpense.toBankAccountId) {
+                if ((oldExpense as any).toBankAccountId) {
                     await tx.bankAccount.update({
-                        where: { id: oldExpense.toBankAccountId },
+                        where: { id: (oldExpense as any).toBankAccountId },
                         data: { balance: { decrement: oldAmount } },
                     });
                 } else if (oldExpense.creditCardId) {
@@ -144,7 +144,7 @@ export class ExpensesService {
                     source: dto.source,
                     receiptUrl: dto.receiptUrl,
                     confidence: dto.confidence,
-                },
+                } as any,
             });
 
             // 3. Apply new balance adjustments
@@ -152,7 +152,7 @@ export class ExpensesService {
             const newPaymentMethod = updatedExpense.paymentMethod;
             const newAccountId = updatedExpense.accountId;
             const newCreditCardId = updatedExpense.creditCardId;
-            const newToBankId = updatedExpense.toBankAccountId;
+            const newToBankId = (updatedExpense as any).toBankAccountId;
 
             if (newPaymentMethod === 'credit_card' && newCreditCardId) {
                 await tx.creditCard.update({
@@ -209,9 +209,9 @@ export class ExpensesService {
             } else if (expense.paymentMethod === 'bank' && expense.accountId) {
                 // Bank Transfer Reversal
                 // Reverse target if provided
-                if (expense.toBankAccountId) {
+                if ((expense as any).toBankAccountId) {
                     await tx.bankAccount.update({
-                        where: { id: expense.toBankAccountId },
+                        where: { id: (expense as any).toBankAccountId },
                         data: { balance: { decrement: amount } },
                     });
                 } else if (expense.creditCardId) {
