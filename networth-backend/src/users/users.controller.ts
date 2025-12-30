@@ -37,6 +37,29 @@ export class UsersController {
     }
   }
 
+  @Get('me/profile')
+  async getMyProfile(@Req() req: any): Promise<UserResponseDto> {
+    return this.usersService.findOne(req.user.id);
+  }
+
+  @Put('me/currency')
+  async updateCurrency(
+    @Req() req: any,
+    @Body() body: { currency: string },
+  ): Promise<{ success: boolean; currency: string }> {
+    await this.usersService.updateCurrency(req.user.id, body.currency);
+    return { success: true, currency: body.currency };
+  }
+
+  @Put('me/module-visibility')
+  async updateModuleVisibility(
+    @Req() req: any,
+    @Body() body: { moduleVisibility: any },
+  ): Promise<{ success: boolean; moduleVisibility: any }> {
+    await this.usersService.updateModuleVisibility(req.user.id, body.moduleVisibility);
+    return { success: true, moduleVisibility: body.moduleVisibility };
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN)
   async getUserById(@Param('id') id: string): Promise<UserResponseDto> {
@@ -76,28 +99,5 @@ export class UsersController {
     @Body() body: { userId: string },
   ): Promise<{ resetLink: string; token: string }> {
     return this.usersService.generateResetLink(body.userId);
-  }
-
-  @Put('me/currency')
-  async updateCurrency(
-    @Req() req: any,
-    @Body() body: { currency: string },
-  ): Promise<{ success: boolean; currency: string }> {
-    await this.usersService.updateCurrency(req.user.id, body.currency);
-    return { success: true, currency: body.currency };
-  }
-
-  @Put('me/module-visibility')
-  async updateModuleVisibility(
-    @Req() req: any,
-    @Body() body: { moduleVisibility: any },
-  ): Promise<{ success: boolean; moduleVisibility: any }> {
-    await this.usersService.updateModuleVisibility(req.user.id, body.moduleVisibility);
-    return { success: true, moduleVisibility: body.moduleVisibility };
-  }
-
-  @Get('me/profile')
-  async getMyProfile(@Req() req: any): Promise<UserResponseDto> {
-    return this.usersService.findOne(req.user.id);
   }
 }
