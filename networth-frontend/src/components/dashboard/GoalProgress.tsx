@@ -213,27 +213,55 @@ const GoalProgress: React.FC<GoalProgressProps> = ({ currentNetWorth, currency, 
             {secondaryGoals && (
                 <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {secondaryGoals.commodityGrams && (
-                        <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                            <div className="text-xs text-purple-200 mb-1">🥇 Gold Target</div>
-                            <div className="text-sm font-bold">{secondaryGoalsData.goldItems.reduce((sum: number, i: any) => sum + (i.grams || 0), 0)} / {secondaryGoals.commodityGrams}g</div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 flex flex-col justify-between">
+                            <div className="text-xs text-purple-200 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                🥇 Gold Target
+                            </div>
+                            <div className="text-xl font-black">
+                                {secondaryGoalsData.goldItems.reduce((sum: number, i: any) => sum + (i.grams || 0), 0)}g
+                            </div>
+                            <div className="text-[10px] text-purple-200/80 mt-1 font-medium">
+                                Goal: {secondaryGoals.commodityGrams}g
+                            </div>
                         </div>
                     )}
                     {secondaryGoals.propertyValue && (
-                        <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                            <div className="text-xs text-purple-200 mb-1">🏠 Property</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.propertyTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.propertyValue), 'AED').toLocaleString()}</div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 flex flex-col justify-between">
+                            <div className="text-xs text-purple-200 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                🏠 Property
+                            </div>
+                            <div className="text-xl font-black">
+                                {currency.symbol} {secondaryGoalsData.propertyTotal.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-purple-200/80 mt-1 font-medium">
+                                Target: {currency.symbol} {convert(parseInt(secondaryGoals.propertyValue), 'AED').toLocaleString()}
+                            </div>
                         </div>
                     )}
                     {secondaryGoals.stocks && (
-                        <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                            <div className="text-xs text-purple-200 mb-1">📈 Stocks</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.stocksTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.stocks), 'AED').toLocaleString()}</div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 flex flex-col justify-between">
+                            <div className="text-xs text-purple-200 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                📈 Stocks
+                            </div>
+                            <div className="text-xl font-black">
+                                {currency.symbol} {secondaryGoalsData.stocksTotal.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-purple-200/80 mt-1 font-medium">
+                                Target: {currency.symbol} {convert(parseInt(secondaryGoals.stocks), 'AED').toLocaleString()}
+                            </div>
                         </div>
                     )}
                     {secondaryGoals.cashAndBank && (
-                        <div className="bg-white/10 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                            <div className="text-xs text-purple-200 mb-1">🏦 Cash Target</div>
-                            <div className="text-sm font-bold">{currency.symbol} {secondaryGoalsData.cashTotal.toLocaleString()} / {convert(parseInt(secondaryGoals.cashAndBank), 'AED').toLocaleString()}</div>
+                        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 flex flex-col justify-between">
+                            <div className="text-xs text-purple-200 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                🏦 Cash Target
+                            </div>
+                            <div className="text-xl font-black">
+                                {currency.symbol} {secondaryGoalsData.cashTotal.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] text-purple-200/80 mt-1 font-medium">
+                                Target: {currency.symbol} {convert(parseInt(secondaryGoals.cashAndBank), 'AED').toLocaleString()}
+                            </div>
                         </div>
                     )}
                 </div>
