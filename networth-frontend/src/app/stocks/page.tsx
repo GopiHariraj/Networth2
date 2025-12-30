@@ -40,9 +40,9 @@ export default function StocksPage() {
                 exchange: s.market || s.exchange || '',
                 stockName: s.stockName || s.name || '',
                 units: parseFloat(s.units) || 0,
-                unitPrice: parseFloat(s.unitPrice) || 0,
-                currentValue: parseFloat(s.unitPrice) || 0,
-                totalValue: s.totalValue || ((parseFloat(s.units) || 0) * (parseFloat(s.unitPrice) || 0)),
+                unitPrice: parseFloat(s.avgPrice) || 0,
+                currentValue: parseFloat(s.currentPrice) || 0,
+                totalValue: s.totalValue || ((parseFloat(s.units) || 0) * (parseFloat(s.currentPrice) || 0)),
                 purchaseDate: (s.purchaseDate || new Date().toISOString()).split('T')[0]
             })));
         }

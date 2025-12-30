@@ -159,7 +159,9 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             market: item.exchange,
             stockName: item.name,
             units: parseFloat(item.quantity),
-            unitPrice: parseFloat(item.currentPrice),
+            avgPrice: parseFloat(item.avgPrice),
+            currentPrice: parseFloat(item.currentPrice),
+            unitPrice: parseFloat(item.avgPrice), // Corrected to cost basis
             totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
             purchaseDate: item.createdAt
         }));
