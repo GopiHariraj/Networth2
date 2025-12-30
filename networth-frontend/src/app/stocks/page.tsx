@@ -14,6 +14,7 @@ interface Stock {
     unitPrice: number;
     currentValue: number;
     totalValue: number;
+    currency: string;
     purchaseDate: string;
 }
 
@@ -43,6 +44,7 @@ export default function StocksPage() {
                 unitPrice: parseFloat(s.avgPrice) || 0,
                 currentValue: parseFloat(s.currentPrice) || 0,
                 totalValue: s.totalValue || ((parseFloat(s.units) || 0) * (parseFloat(s.currentPrice) || 0)),
+                currency: s.currency || 'AED',
                 purchaseDate: (s.purchaseDate || new Date().toISOString()).split('T')[0]
             })));
         }
@@ -62,8 +64,8 @@ export default function StocksPage() {
             market: stock.exchange,
             stockName: stock.stockName,
             units: stock.units.toString(),
-            unitPrice: stock.unitPrice.toString(),
-            currentPrice: stock.currentValue.toString(),
+            unitPrice: convert(stock.unitPrice, stock.currency).toString(),
+            currentPrice: convert(stock.currentValue, stock.currency).toString(),
             purchaseDate: stock.purchaseDate
         });
         setActiveTab('Manage Stock');
@@ -87,6 +89,7 @@ export default function StocksPage() {
                 quantity: parseFloat(formData.units),
                 avgPrice: parseFloat(formData.unitPrice),
                 currentPrice: parseFloat(formData.currentPrice || formData.unitPrice),
+                currency: currency.code,
                 notes: `Market: ${formData.market}`
             };
 
@@ -267,8 +270,10 @@ export default function StocksPage() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                         {stocks.map((stock) => {
-                                            const gain = stock.totalValue - (stock.units * stock.unitPrice);
-                                            const gainPercent = (gain / (stock.units * stock.unitPrice)) * 100;
+                                            const costBasis = stock.units * stock.unitPrice;
+                                            const marketValue = stock.totalValue;
+                                            const gain = marketValue - costBasis;
+                                            const gainPercent = costBasis !== 0 ? (gain / costBasis) * 100 : 0;
 
                                             return (
                                                 <tr key={stock.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-all group">
@@ -287,13 +292,13 @@ export default function StocksPage() {
                                                         {stock.units} <span className="text-[10px] text-slate-400">shares</span>
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-mono text-slate-500 dark:text-slate-400 italic">
-                                                        {currency.symbol}{convert(stock.unitPrice, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        {currency.symbol}{convert(stock.unitPrice, stock.currency).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-mono font-bold text-slate-900 dark:text-white">
-                                                        {currency.symbol}{convert(stock.currentValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        {currency.symbol}{convert(stock.currentValue, stock.currency).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-8 py-6 text-right">
-                                                        <div className="font-mono font-bold text-slate-900 dark:text-white text-lg">{currency.symbol}{convert(stock.totalValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                        <div className="font-mono font-bold text-slate-900 dark:text-white text-lg">{currency.symbol}{convert(stock.totalValue, stock.currency).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         <div className={`text-[10px] font-bold mt-1 uppercase ${gain >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                             {gain >= 0 ? '▲' : '▼'} {Math.abs(gainPercent).toFixed(2)}%
                                                             ({gain >= 0 ? '+' : ''}{currency.symbol}{convert(Math.abs(gain), 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
