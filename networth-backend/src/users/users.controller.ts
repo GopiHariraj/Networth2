@@ -21,7 +21,9 @@ import { UserResponseDto } from './dto/user-response.dto';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private usersService: UsersService) { }
+  constructor(private usersService: UsersService) {
+    console.log('[UsersController] Initialized');
+  }
 
   @Get()
   @Roles(Role.SUPER_ADMIN)
@@ -47,6 +49,7 @@ export class UsersController {
     @Req() req: any,
     @Body() body: { currency: string },
   ): Promise<{ success: boolean; currency: string }> {
+    console.log(`[UsersController] updateCurrency for user ${req.user.id}:`, body.currency);
     await this.usersService.updateCurrency(req.user.id, body.currency);
     return { success: true, currency: body.currency };
   }
@@ -56,6 +59,7 @@ export class UsersController {
     @Req() req: any,
     @Body() body: { moduleVisibility: any },
   ): Promise<{ success: boolean; moduleVisibility: any }> {
+    console.log(`[UsersController] updateModuleVisibility for user ${req.user.id}:`, body.moduleVisibility);
     await this.usersService.updateModuleVisibility(req.user.id, body.moduleVisibility);
     return { success: true, moduleVisibility: body.moduleVisibility };
   }
