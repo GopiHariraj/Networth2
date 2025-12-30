@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import apiClient from './api/client';
+import apiClient, { usersApi } from './api/client';
 
 interface User {
     id: string;
@@ -13,6 +13,7 @@ interface User {
     role?: string;
     currency?: string;
     forceChangePassword?: boolean;
+    moduleVisibility?: Record<string, boolean>;
 }
 
 interface AuthContextType {
@@ -21,6 +22,7 @@ interface AuthContextType {
     login: (token: string, user: User) => void;
     logout: () => void;
     updateUser: (user: Partial<User>) => void;
+    updateModuleVisibility: (visibility: Record<string, boolean>) => Promise<void>;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
@@ -131,8 +133,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    const updateModuleVisibility = async (visibility: Record<string, boolean>) => {
+        if (!user) return;
+        try {
+            await usersApi.updateModuleVisibility(visibility);
+            const updatedUser = { ...user, moduleVisibility: visibility };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        } catch (error) {
+            console.error('Failed to update module visibility', error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, updateUser, isAuthenticated, isLoading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, updateUser, updateModuleVisibility, isAuthenticated, isLoading }}>
             {isLoading ? (
                 <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                     <div className="text-center">

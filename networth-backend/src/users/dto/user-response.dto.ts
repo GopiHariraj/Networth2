@@ -11,6 +11,7 @@ export class UserResponseDto {
   isDisabled: boolean;
   failedLoginAttempts: number;
   forceChangePassword: boolean;
+  moduleVisibility: any;
   createdAt: Date;
   updatedAt: Date;
 
@@ -30,6 +31,7 @@ export class UserResponseDto {
       isDisabled: user.isDisabled,
       failedLoginAttempts: user.failedLoginAttempts,
       forceChangePassword: user.forceChangePassword,
+      moduleVisibility: user.moduleVisibility,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });

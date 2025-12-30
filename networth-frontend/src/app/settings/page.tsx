@@ -9,7 +9,7 @@ import apiClient from '../../lib/api/client';
 export default function SettingsPage() {
     const { currency, setCurrency, exchangeRates, lastUpdate, isUsingCache, updateExchangeRates } = useCurrency();
     const { data: networthData } = useNetWorth();
-    const { user } = useAuth();
+    const { user, updateModuleVisibility } = useAuth();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [settings, setSettings] = useState({
         notifications: true,
@@ -333,6 +333,59 @@ export default function SettingsPage() {
                                     <option value="zh">中文</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Module Visibility Settings */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-2xl">
+                                📋
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-slate-900 dark:text-white">Module Visibility</h2>
+                                <p className="text-sm text-slate-500">Enable or disable optional dashboard modules</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { id: 'gold', name: 'Gold Asset Tracking', icon: '🥇' },
+                                { id: 'stocks', name: 'Stock Portfolio', icon: '📈' },
+                                { id: 'bonds', name: 'Fixed Income (Bonds)', icon: '📜' },
+                                { id: 'property', name: 'Real Estate / Property', icon: '🏠' },
+                                { id: 'mutualFunds', name: 'Mutual Funds', icon: '📊' },
+                                { id: 'loans', name: 'Loans & Debt', icon: '💳' },
+                                { id: 'insurance', name: 'Insurance Module', icon: '🛡️' }
+                            ].map((module) => {
+                                const isEnabled = user?.moduleVisibility?.[module.id] !== false;
+
+                                return (
+                                    <div key={module.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl group transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">{module.icon}</span>
+                                            <div>
+                                                <div className="font-medium text-slate-900 dark:text-white text-sm">{module.name}</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                const currentVisibility = user?.moduleVisibility || {
+                                                    gold: true, stocks: true, bonds: true, property: true, mutualFunds: true, loans: true, insurance: true
+                                                };
+                                                const newVisibility = {
+                                                    ...currentVisibility,
+                                                    [module.id]: !isEnabled
+                                                };
+                                                await updateModuleVisibility(newVisibility);
+                                            }}
+                                            className={`relative w-12 h-6 rounded-full transition-colors ${isEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                        >
+                                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : ''}`} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

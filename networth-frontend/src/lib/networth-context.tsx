@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { financialDataApi } from './api/financial-data';
 import { useCurrency } from './currency-context';
+import { useAuth } from './auth-context';
 
 interface AssetItem {
     id: string;
@@ -16,6 +17,7 @@ interface NetWorthData {
         stocks: { items: AssetItem[]; totalValue: number };
         property: { items: AssetItem[]; totalValue: number };
         mutualFunds: { items: AssetItem[]; totalValue: number };
+        insurance: { items: AssetItem[]; totalValue: number };
         cash: {
             bankAccounts: AssetItem[];
             wallets: AssetItem[];
@@ -53,6 +55,7 @@ const NetWorthContext = createContext<NetWorthContextType | undefined>(undefined
 
 export function NetWorthProvider({ children }: { children: ReactNode }) {
     const { convert, convertRaw } = useCurrency();
+    const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -65,6 +68,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     const [bankAccounts, setBankAccounts] = useState<AssetItem[]>([]);
     const [wallets, setWallets] = useState<AssetItem[]>([]);
     const [loanItems, setLoanItems] = useState<AssetItem[]>([]);
+    const [insuranceItems, setInsuranceItems] = useState<AssetItem[]>([]);
     const [creditCardItems, setCreditCardItems] = useState<AssetItem[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString());
 
@@ -109,6 +113,14 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             setLoanItems(res.data || []);
             setLastUpdated(new Date().toISOString());
         } catch (e) { console.error('Error loading loans:', e); }
+    };
+
+    const loadInsurance = async () => {
+        try {
+            const res = await (financialDataApi as any).insurance.getAll();
+            setInsuranceItems(res.data || []);
+            setLastUpdated(new Date().toISOString());
+        } catch (e) { console.error('Error loading insurance:', e); }
     };
 
     const loadBonds = async () => {
@@ -247,6 +259,21 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         return { items, totalValue: total };
     }, [mutualFundItems]);
 
+    const insuranceData = React.useMemo(() => {
+        const items = insuranceItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            provider: item.provider,
+            policyNumber: item.policyNumber,
+            premiumAmount: parseFloat(item.premiumAmount),
+            benefitAmount: parseFloat(item.benefitAmount),
+            totalValue: parseFloat(item.benefitAmount), // For net worth inclusion (optional)
+            expiryDate: item.expiryDate
+        }));
+        const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        return { items, totalValue: total };
+    }, [insuranceItems]);
+
     const creditCardData = React.useMemo(() => {
         const items = creditCardItems.map((item: any) => ({
             id: item.id,
@@ -277,22 +304,36 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
 
     // Final combined net worth data
     const data = React.useMemo(() => {
-        const totalAssets = goldData.totalValue + bondData.totalValue + stockData.totalValue +
-            propertyData.totalValue + mutualFundData.totalValue + cashData.totalCash;
-        const totalLiabilities = loanData.totalValue + creditCardData.totalValue;
+        // Module visibility check
+        const isVisible = (moduleId: string) => user?.moduleVisibility?.[moduleId] !== false;
+
+        const effectiveGold = isVisible('gold') ? goldData : { items: [], totalValue: 0 };
+        const effectiveBonds = isVisible('bonds') ? bondData : { items: [], totalValue: 0 };
+        const effectiveStocks = isVisible('stocks') ? stockData : { items: [], totalValue: 0 };
+        const effectiveProperty = isVisible('property') ? propertyData : { items: [], totalValue: 0 };
+        const effectiveMutualFunds = isVisible('mutualFunds') ? mutualFundData : { items: [], totalValue: 0 };
+        const effectiveInsurance = isVisible('insurance') ? insuranceData : { items: [], totalValue: 0 };
+        const effectiveLoans = isVisible('loans') ? loanData : { items: [], totalValue: 0 };
+
+        const totalAssets = effectiveGold.totalValue + effectiveBonds.totalValue +
+            effectiveStocks.totalValue + effectiveProperty.totalValue +
+            effectiveMutualFunds.totalValue + cashData.totalCash;
+
+        const totalLiabilities = effectiveLoans.totalValue + creditCardData.totalValue;
         const netWorth = totalAssets - totalLiabilities;
 
         return {
             assets: {
-                gold: goldData,
-                bonds: bondData,
-                stocks: stockData,
-                property: propertyData,
-                mutualFunds: mutualFundData,
+                gold: effectiveGold,
+                bonds: effectiveBonds,
+                stocks: effectiveStocks,
+                property: effectiveProperty,
+                mutualFunds: effectiveMutualFunds,
+                insurance: effectiveInsurance,
                 cash: cashData
             },
             liabilities: {
-                loans: loanData,
+                loans: effectiveLoans,
                 creditCards: creditCardData
             },
             totalAssets,
@@ -300,7 +341,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             netWorth,
             lastUpdated
         };
-    }, [goldData, bondData, stockData, propertyData, mutualFundData, cashData, loanData, creditCardData, lastUpdated]);
+    }, [goldData, bondData, stockData, propertyData, mutualFundData, insuranceData, cashData, loanData, creditCardData, lastUpdated, user?.moduleVisibility]);
 
     const loadData = async () => {
         try {
@@ -324,7 +365,8 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             // Fetch everything in parallel
             await Promise.all([
                 loadGold(), loadStocks(), loadProperties(), loadBankAccounts(),
-                loadLoans(), loadBonds(), loadMutualFunds(), loadCreditCards()
+                loadLoans(), loadBonds(), loadMutualFunds(), loadCreditCards(),
+                loadInsurance()
             ]);
         } catch (error) {
             console.error('Error loading financial data:', error);

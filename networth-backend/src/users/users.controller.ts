@@ -87,6 +87,15 @@ export class UsersController {
     return { success: true, currency: body.currency };
   }
 
+  @Put('me/module-visibility')
+  async updateModuleVisibility(
+    @Req() req: any,
+    @Body() body: { moduleVisibility: any },
+  ): Promise<{ success: boolean; moduleVisibility: any }> {
+    await this.usersService.updateModuleVisibility(req.user.id, body.moduleVisibility);
+    return { success: true, moduleVisibility: body.moduleVisibility };
+  }
+
   @Get('me/profile')
   async getMyProfile(@Req() req: any): Promise<UserResponseDto> {
     return this.usersService.findOne(req.user.id);

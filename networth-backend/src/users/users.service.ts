@@ -213,6 +213,9 @@ export class UsersService {
         ...(updateUserDto.failedLoginAttempts !== undefined && {
           failedLoginAttempts: updateUserDto.failedLoginAttempts,
         }),
+        ...(updateUserDto.moduleVisibility !== undefined && {
+          moduleVisibility: updateUserDto.moduleVisibility,
+        }),
         ...(hashedPassword && { passwordHash: hashedPassword }),
       },
     });
@@ -277,6 +280,13 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { currency },
+    });
+  }
+
+  async updateModuleVisibility(userId: string, moduleVisibility: any): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { moduleVisibility },
     });
   }
 }

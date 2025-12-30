@@ -12,7 +12,29 @@ const BREAKPOINTS = {
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
+    const pathname = require('next/navigation').usePathname();
+    const router = require('next/navigation').useRouter();
+
+    // Navigation prevention for disabled modules
+    useEffect(() => {
+        if (!user?.moduleVisibility) return;
+
+        const pathMap: Record<string, string> = {
+            '/gold': 'gold',
+            '/stocks': 'stocks',
+            '/bonds': 'bonds',
+            '/property': 'property',
+            '/mutual-funds': 'mutualFunds',
+            '/loans': 'loans',
+            '/insurance': 'insurance'
+        };
+
+        const moduleKey = pathMap[pathname];
+        if (moduleKey && user.moduleVisibility[moduleKey] === false) {
+            router.push('/');
+        }
+    }, [pathname, user?.moduleVisibility, router]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile drawer state
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Desktop collapse state
     const [isMobile, setIsMobile] = useState(false);

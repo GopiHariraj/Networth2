@@ -47,6 +47,9 @@ model User {
   failedLoginAttempts Int      @default(0)
   isDisabled          Boolean  @default(false)
 
+  // Module Visibility Settings
+  moduleVisibility    Json?    // Optional JSON to store enabled/disabled modules
+
   // Relations
   bankAccounts  BankAccount[]
   goldAssets    GoldAsset[]

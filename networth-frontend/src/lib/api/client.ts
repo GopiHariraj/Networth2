@@ -123,6 +123,7 @@ export const authApi = {
 
 export const usersApi = {
     updateCurrency: (currency: string) => apiClient.put('/users/me/currency', { currency }),
+    updateModuleVisibility: (moduleVisibility: any) => apiClient.put('/users/me/module-visibility', { moduleVisibility }),
 };
 
 export const transactionsApi = {

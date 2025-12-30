@@ -33,8 +33,23 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
 
     if (!isAuthenticated) return null;
 
-    // No special items added to sidebar - all users see same menu
-    const filteredItems = [...MENU_ITEMS];
+    // Map menu item names to visibility keys
+    const visibilityKeyMap: Record<string, string> = {
+        'Gold': 'gold',
+        'Stocks': 'stocks',
+        'Bonds': 'bonds',
+        'Property': 'property',
+        'Mutual Funds': 'mutualFunds',
+        'Loans': 'loans',
+        'Insurance': 'insurance'
+    };
+
+    const filteredItems = MENU_ITEMS.filter(item => {
+        const key = visibilityKeyMap[item.name];
+        if (!key) return true; // Core modules are always visible
+        if (!user?.moduleVisibility) return true; // Default to visible if settings not loaded
+        return user.moduleVisibility[key] !== false; // Explicitly hidden if false
+    });
 
     return (
         <>

@@ -42,4 +42,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   failedLoginAttempts?: number;
+
+  @IsOptional()
+  moduleVisibility?: any;
 }
