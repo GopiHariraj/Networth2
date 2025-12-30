@@ -74,7 +74,6 @@ export default function Calculator() {
         ['4', '5', '6', '×'],
         ['1', '2', '3', '-'],
         ['⌫', '0', '.', '+'],
-        ['C'],
     ];
 
     return (
@@ -109,7 +108,6 @@ export default function Calculator() {
                                 {row.map((btn) => {
                                     const isOperation = ['÷', '×', '-', '+'].includes(btn);
                                     const isClear = btn === 'C';
-                                    const isEquals = btn === '=';
 
                                     return (
                                         <button
@@ -134,12 +132,20 @@ export default function Calculator() {
                                 })}
                             </React.Fragment>
                         ))}
-                        <button
-                            onClick={calculate}
-                            className="col-span-4 py-3 px-4 rounded-xl font-semibold bg-green-500 hover:bg-green-600 text-white transition-all"
-                        >
-                            = Calculate
-                        </button>
+                        <div className="col-span-4 grid grid-cols-2 gap-2">
+                            <button
+                                onClick={clear}
+                                className="py-3 px-4 rounded-xl font-bold bg-red-500 hover:bg-red-600 text-white transition-all shadow-lg shadow-red-500/20"
+                            >
+                                C Clear
+                            </button>
+                            <button
+                                onClick={calculate}
+                                className="py-3 px-4 rounded-xl font-bold bg-green-500 hover:bg-green-600 text-white transition-all shadow-lg shadow-green-500/20"
+                            >
+                                = Total
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
