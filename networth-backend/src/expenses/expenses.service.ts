@@ -246,6 +246,14 @@ export class ExpensesService {
             return acc;
         }, {});
 
+        // Group by payment method
+        const costByPaymentMethod = expenses.reduce((acc: any, exp) => {
+            const method = exp.paymentMethod || 'cash';
+            if (!acc[method]) acc[method] = 0;
+            acc[method] += Number(exp.amount);
+            return acc;
+        }, {});
+
         // Monthly trend (last 6 months)
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
@@ -264,6 +272,7 @@ export class ExpensesService {
             total,
             count: expenses.length,
             constByCategory,
+            costByPaymentMethod,
             monthlyTrend: Object.keys(monthlyTrend).map(month => ({ month, amount: monthlyTrend[month] })),
         };
     }

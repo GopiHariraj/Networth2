@@ -34,6 +34,7 @@ interface Insights {
     total: number;
     count: number;
     constByCategory: Record<string, number>;
+    costByPaymentMethod: Record<string, number>;
     monthlyTrend: { month: string; amount: number }[];
 }
 
@@ -50,6 +51,7 @@ export default function ExpensesPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
+    const [filterPaymentMethod, setFilterPaymentMethod] = useState('all');
 
     // Form state
     const [formData, setFormData] = useState({
@@ -121,6 +123,14 @@ export default function ExpensesPage() {
         return convert(expenses.filter(e => {
             const expenseDate = new Date(e.date);
             return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
+        }).reduce((sum, e) => sum + e.amount, 0), 'AED');
+    };
+
+    const getDebitMonthTotal = () => {
+        const now = new Date();
+        return convert(expenses.filter(e => {
+            const expenseDate = new Date(e.date);
+            return e.paymentMethod === 'debit_card' && expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
         }).reduce((sum, e) => sum + e.amount, 0), 'AED');
     };
 
@@ -270,6 +280,7 @@ export default function ExpensesPage() {
             e.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
             e.notes?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'all' || e.category === filterCategory;
+        const matchesPaymentMethod = filterPaymentMethod === 'all' || e.paymentMethod === filterPaymentMethod;
 
         const expenseDate = new Date(e.date);
         const today = new Date();
@@ -280,11 +291,15 @@ export default function ExpensesPage() {
         else if (activeTab === 'monthly') matchesTab = expenseDate.getMonth() === today.getMonth() && expenseDate.getFullYear() === today.getFullYear();
         else if (activeTab === 'yearly') matchesTab = expenseDate.getFullYear() === today.getFullYear();
 
-        return matchesSearch && matchesCategory && matchesTab;
+        return matchesSearch && matchesCategory && matchesPaymentMethod && matchesTab;
     });
 
     const categoryChartData = React.useMemo(() => insights?.constByCategory ? Object.entries(insights.constByCategory).map(([name, value]) => ({ name, value: convert(value, 'AED') })) : [], [insights, convert]);
-    const trendData = React.useMemo(() => insights?.monthlyTrend.map(d => ({
+    const paymentMethodChartData = React.useMemo(() => insights?.costByPaymentMethod ? Object.entries(insights.costByPaymentMethod).map(([name, value]) => ({
+        name: name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        value: convert(value, 'AED')
+    })) : [], [insights, convert]);
+    const trendData = React.useMemo(() => insights?.monthlyTrend?.map(d => ({
         ...d,
         amount: convert(d.amount, 'AED')
     })) || [], [insights, convert]);
@@ -330,13 +345,10 @@ export default function ExpensesPage() {
                     </div>
 
                     <div className="bg-white dark:bg-slate-800/80 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-xl border border-white dark:border-slate-700/50 group">
-                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">This Month</div>
-                        <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">{currency.symbol} {getMonthTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Debit Spending</div>
+                        <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">{currency.symbol} {getDebitMonthTotal().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-4 flex items-center gap-2">
-                            <div className="h-2 flex-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                <div className="h-full bg-blue-500 rounded-full w-[65%]"></div>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400">65% OF BUDGET</span>
+                            <span className="text-[10px] font-bold text-blue-500 uppercase">Bank Withdrawal</span>
                         </div>
                     </div>
 
@@ -419,6 +431,33 @@ export default function ExpensesPage() {
                                     </ResponsiveContainer>
                                 </div>
                             </div>
+                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+                                <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                                    <span className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">💳</span> Method Breakdown
+                                </h3>
+                                <div className="h-[350px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={paymentMethodChartData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={80}
+                                                outerRadius={120}
+                                                paddingAngle={8}
+                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            >
+                                                {paymentMethodChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} stroke="none" />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(val: number) => `${currency.symbol} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-8">
@@ -429,7 +468,12 @@ export default function ExpensesPage() {
                                 <div className="space-y-6">
                                     <div className="bg-white/10 backdrop-blur-md rounded-3xl p-5 border border-white/20">
                                         <div className="text-xs uppercase font-bold opacity-70 mb-1">Top Sector</div>
-                                        <div className="text-2xl font-black">{Object.keys(insights?.constByCategory || {}).sort((a, b) => (insights?.constByCategory[b] || 0) - (insights?.constByCategory[a] || 0))[0] || 'N/A'}</div>
+                                        <div className="text-2xl font-black">
+                                            {(() => {
+                                                const counts = insights?.constByCategory || {};
+                                                return Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || 'N/A';
+                                            })()}
+                                        </div>
                                     </div>
                                     <div className="bg-white/10 backdrop-blur-md rounded-3xl p-5 border border-white/20">
                                         <div className="text-xs uppercase font-bold opacity-70 mb-1">Avg. Monthly</div>
@@ -788,6 +832,17 @@ export default function ExpensesPage() {
                                     >
                                         <option value="all">Every Category</option>
                                         {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                    <select
+                                        value={filterPaymentMethod}
+                                        onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                                        className="bg-white dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold shadow-inner focus:ring-2 focus:ring-blue-500 transition-all text-xs"
+                                    >
+                                        <option value="all">All Methods</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="debit_card">Debit Card</option>
+                                        <option value="credit_card">Credit Card</option>
+                                        <option value="bank">Bank Transfer</option>
                                     </select>
                                 </div>
                             </div>
