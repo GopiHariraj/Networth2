@@ -33,7 +33,8 @@ interface CurrencyContextType {
     lastUpdate: Date | null;
     isUsingCache: boolean;
     updateExchangeRates: () => Promise<void>;
-    convert: (amount: number, fromCurrency: string) => number;
+    convert: (amount: number, fromCurrency?: string) => number;
+    convertRaw: (amount: number, from: string, to: string) => number;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -223,6 +224,29 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const convertRaw = (amount: number, from: string, to: string): number => {
+        if (from === to) return amount;
+        if (Object.keys(exchangeRates).length === 0) return amount;
+
+        try {
+            // Convert to AED first
+            let amountInAED = amount;
+            if (from !== 'AED') {
+                const rateToAED = exchangeRates[from];
+                if (!rateToAED) return amount;
+                amountInAED = amount / rateToAED;
+            }
+
+            // Convert from AED to target
+            if (to === 'AED') return amountInAED;
+            const rateFromAED = exchangeRates[to];
+            if (!rateFromAED) return amountInAED;
+            return amountInAED * rateFromAED;
+        } catch (error) {
+            return amount;
+        }
+    };
+
     return (
         <CurrencyContext.Provider value={{
             currency,
@@ -234,6 +258,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
             isUsingCache,
             updateExchangeRates,
             convert,
+            convertRaw,
         }}>
             {children}
         </CurrencyContext.Provider>

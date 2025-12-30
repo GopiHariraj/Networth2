@@ -178,6 +178,7 @@ model StockAsset {
   quantity      Decimal  @db.Decimal(15, 4)
   avgPrice      Decimal  @db.Decimal(15, 2)
   currentPrice  Decimal  @db.Decimal(15, 2)
+  currency      String   @default("AED")
   broker        String?
   notes         String?  @db.Text
   createdAt     DateTime @default(now())

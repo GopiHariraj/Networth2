@@ -161,13 +161,24 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             units: parseFloat(item.quantity),
             avgPrice: parseFloat(item.avgPrice),
             currentPrice: parseFloat(item.currentPrice),
-            unitPrice: parseFloat(item.avgPrice), // Corrected to cost basis
+            currency: item.currency || 'AED',
+            unitPrice: parseFloat(item.avgPrice), // Backward compatibility (Cost Basis)
             totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
             purchaseDate: item.createdAt
         }));
-        const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+        const total = items.reduce((sum, item) => {
+            const convertedValue = convert(item.totalValue, item.currency);
+            // We want totalValue in AED for internal summation consistency if needed,
+            // but the NetWorth total logic uses raw AED.
+            // Wait, NetWorth total logic uses raw sum and THEN converts.
+            // So we MUST normalize everything to AED.
+
+            // Re-calculating totalValue as raw AED
+            const rawAEDValue = convertRaw(item.totalValue, item.currency, 'AED');
+            return sum + (rawAEDValue || 0);
+        }, 0);
         return { items, totalValue: total };
-    }, [stockItems]);
+    }, [stockItems, convert]);
 
     const propertyData = React.useMemo(() => {
         const items = propertyItems.map((item: any) => ({

@@ -24,6 +24,10 @@ export class CreateStockAssetDto {
 
   @IsString()
   @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsOptional()
   broker?: string;
 
   @IsString()
@@ -52,6 +56,10 @@ export class UpdateStockAssetDto {
 
   @IsOptional()
   currentPrice?: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
 
   @IsString()
   @IsOptional()
