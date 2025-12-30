@@ -247,8 +247,13 @@ export default function StocksPage() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                         {stocks.map((s) => {
-                                            const mv = s.quantity * s.currentPrice;
-                                            const cb = s.quantity * s.avgPrice;
+                                            // Convert prices to user's selected currency FIRST
+                                            const convertedAvgPrice = convert(s.avgPrice, s.currency);
+                                            const convertedCurrentPrice = convert(s.currentPrice, s.currency);
+
+                                            // Then calculate market value and cost basis in converted currency
+                                            const mv = s.quantity * convertedCurrentPrice;
+                                            const cb = s.quantity * convertedAvgPrice;
                                             const gl = mv - cb;
                                             const glp = cb > 0 ? (gl / cb) * 100 : 0;
 
@@ -263,14 +268,14 @@ export default function StocksPage() {
                                                         {s.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                                                     </td>
                                                     <td className="px-6 py-4 text-right font-mono text-slate-500 dark:text-slate-400 italic text-sm">
-                                                        {currency.symbol} {convert(s.avgPrice, s.currency).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        {currency.symbol} {convertedAvgPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-6 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">
-                                                        {currency.symbol} {convert(s.currentPrice, s.currency).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                        {currency.symbol} {convertedCurrentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="font-mono font-bold text-slate-900 dark:text-white">
-                                                            {currency.symbol} {convert(mv, s.currency).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                            {currency.symbol} {mv.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                         </div>
                                                         <div className={`text-[10px] font-bold ${gl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                             {gl >= 0 ? '+' : ''}{glp.toFixed(2)}%
