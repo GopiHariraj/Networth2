@@ -25,67 +25,68 @@ export class ExpensesService {
             ? new Date(dto.date)
             : new Date(dto.date + 'T00:00:00.000Z');
 
-        return this.prisma.$transaction(async (tx) => {
-            // 1. Create the expense
-            const expense = await tx.expense.create({
-                data: {
-                    userId,
-                    date: dateObj,
-                    amount: dto.amount,
-                    currency: dto.currency || 'AED',
-                    category: dto.category,
-                    merchant: dto.merchant,
-                    paymentMethod: dto.paymentMethod,
-                    accountId: dto.accountId,
-                    creditCardId: dto.creditCardId,
-                    toBankAccountId: dto.toBankAccountId,
-                    recurrence: dto.recurrence || 'one-time',
-                    periodTag: dto.periodTag,
-                    notes: dto.notes,
-                    source: dto.source || 'manual',
-                    receiptUrl: dto.receiptUrl,
-                    confidence: dto.confidence,
-                } as any,
-            });
-
-            // 2. Adjust balances based on payment method
-            const amount = Number(dto.amount);
-
-            if (dto.paymentMethod === 'credit_card' && dto.creditCardId) {
-                await tx.creditCard.update({
-                    where: { id: dto.creditCardId },
-                    data: { usedAmount: { increment: amount } },
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                // 1. Create the expense
+                const expense = await tx.expense.create({
+                    data: {
+                        userId,
+                        date: dateObj,
+                        amount: dto.amount,
+                        currency: dto.currency || 'AED',
+                        category: dto.category,
+                        merchant: dto.merchant,
+                        paymentMethod: dto.paymentMethod,
+                        accountId: dto.accountId || null,
+                        creditCardId: dto.creditCardId || null,
+                        toBankAccountId: dto.toBankAccountId || null,
+                        recurrence: dto.recurrence || 'one-time',
+                        periodTag: dto.periodTag || 'monthly',
+                        notes: dto.notes,
+                        source: dto.source || 'manual',
+                        receiptUrl: dto.receiptUrl,
+                        confidence: dto.confidence,
+                    } as any,
                 });
-            } else if ((dto.paymentMethod === 'debit_card' || dto.paymentMethod === 'cash') && dto.accountId) {
-                await tx.bankAccount.update({
-                    where: { id: dto.accountId },
-                    data: { balance: { decrement: amount } },
-                });
-            } else if (dto.paymentMethod === 'bank' && dto.accountId) {
-                // Bank Transfer
-                // Increment target if provided (Bank or Credit Card payment)
-                if (dto.toBankAccountId) {
-                    await tx.bankAccount.update({
-                        where: { id: dto.toBankAccountId },
-                        data: { balance: { increment: amount } },
-                    });
-                } else if (dto.creditCardId) {
-                    // This is a Credit Card payment via Bank Transfer
+
+                // 2. Adjust balances based on payment method
+                const amount = Number(dto.amount);
+
+                if (dto.paymentMethod === 'credit_card' && dto.creditCardId) {
                     await tx.creditCard.update({
                         where: { id: dto.creditCardId },
-                        data: { usedAmount: { decrement: amount } },
+                        data: { usedAmount: { increment: amount } },
+                    });
+                } else if ((dto.paymentMethod === 'debit_card' || dto.paymentMethod === 'cash') && dto.accountId) {
+                    await tx.bankAccount.update({
+                        where: { id: dto.accountId },
+                        data: { balance: { decrement: amount } },
+                    });
+                } else if (dto.paymentMethod === 'bank' && dto.accountId) {
+                    if (dto.toBankAccountId) {
+                        await tx.bankAccount.update({
+                            where: { id: dto.toBankAccountId },
+                            data: { balance: { increment: amount } },
+                        });
+                    } else if (dto.creditCardId) {
+                        await tx.creditCard.update({
+                            where: { id: dto.creditCardId },
+                            data: { usedAmount: { decrement: amount } },
+                        });
+                    }
+
+                    await tx.bankAccount.update({
+                        where: { id: dto.accountId },
+                        data: { balance: { decrement: amount } },
                     });
                 }
 
-                // Decrement source bank account
-                await tx.bankAccount.update({
-                    where: { id: dto.accountId },
-                    data: { balance: { decrement: amount } },
-                });
-            }
-
-            return expense;
-        });
+                return expense;
+            });
+        } catch (error) {
+            console.error('❌ CRITICAL: Failed to create expense:', error);
+            throw error;
+        }
     }
 
     async update(id: string, userId: string, dto: UpdateExpenseDto) {
