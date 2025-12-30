@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { financialDataApi } from './api/financial-data';
+import apiClient, { usersApi } from './api/client';
 
 export interface Currency {
     code: string;
@@ -109,20 +110,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
     const fetchExchangeRates = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/exchange-rates`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch exchange rates');
-            }
-
-            const data = await response.json();
+            const response = await apiClient.get('/exchange-rates');
+            const data = response.data;
 
             setExchangeRates(data.rates || {});
             setLastUpdate(data.fetchedAt ? new Date(data.fetchedAt) : new Date());
@@ -135,21 +124,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
     const updateExchangeRates = async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/exchange-rates/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to refresh exchange rates');
-            }
-
-            const data = await response.json();
+            const response = await apiClient.post('/exchange-rates/refresh');
+            const data = response.data;
 
             setExchangeRates(data.rates || {});
             setLastUpdate(data.fetchedAt ? new Date(data.fetchedAt) : new Date());
@@ -181,17 +157,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
             // Update on backend
             try {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/currency`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ currency: newCurrency.code }),
-                    });
-                }
+                await usersApi.updateCurrency(newCurrency.code);
             } catch (error) {
                 console.error('Failed to update currency preference:', error);
             }

@@ -47,6 +47,7 @@ export class AuthService {
         email: user.email,
         name: user.firstName || 'User',
         role: user.role,
+        currency: user.currency,
         forceChangePassword: true,
       },
     };
@@ -147,6 +148,7 @@ export class AuthService {
         email: user.email,
         name: user.firstName || 'User',
         role: user.role,
+        currency: user.currency,
         forceChangePassword: user.forceChangePassword,
       },
     };

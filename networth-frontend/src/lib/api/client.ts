@@ -121,6 +121,10 @@ export const authApi = {
     login: (credentials: any) => apiClient.post('/auth/login', credentials),
 };
 
+export const usersApi = {
+    updateCurrency: (currency: string) => apiClient.put('/users/me/currency', { currency }),
+};
+
 export const transactionsApi = {
     create: (data: any) => apiClient.post('/transactions', data),
     parseSMS: (text: string) => apiClient.post('/transactions/sms', { text }),
