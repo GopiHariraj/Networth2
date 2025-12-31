@@ -180,6 +180,7 @@ export class AuthService {
         name: user.firstName || 'User',
         role: user.role,
         currency: user.currency,
+        language: user.language || 'en',
         forceChangePassword: user.forceChangePassword,
         moduleVisibility: user.moduleVisibility,
       },

@@ -64,6 +64,15 @@ export class UsersController {
     return { success: true, moduleVisibility: body.moduleVisibility };
   }
 
+  @Put('me/language')
+  async updateLanguage(
+    @Req() req: any,
+    @Body() body: { language: string },
+  ): Promise<{ success: boolean; language: string }> {
+    await this.usersService.updateLanguage(req.user.id, body.language);
+    return { success: true, language: body.language };
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN)
   async getUserById(@Param('id') id: string): Promise<UserResponseDto> {

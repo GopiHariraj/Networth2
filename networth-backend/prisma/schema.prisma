@@ -29,6 +29,7 @@ model User {
   firstName     String
   lastName      String?
   currency      String   @default("AED") @map("currency") // Display currency preference (AED, USD, EUR, etc.)
+  language      String   @default("en") // User's preferred language (en, ta, ar, fr)
   refreshToken  String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
