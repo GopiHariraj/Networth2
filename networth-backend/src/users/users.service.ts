@@ -289,16 +289,4 @@ export class UsersService {
       data: { moduleVisibility },
     });
   }
-
-  async updateLanguage(userId: string, language: string): Promise<void> {
-    const validLanguages = ['en', 'ta', 'ar', 'fr'];
-    if (!validLanguages.includes(language)) {
-      throw new BadRequestException('Invalid language. Supported: en, ta, ar, fr');
-    }
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { language },
-    });
-  }
 }
