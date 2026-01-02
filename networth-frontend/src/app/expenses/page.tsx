@@ -53,6 +53,19 @@ export default function ExpensesPage() {
     const [filterCategory, setFilterCategory] = useState('all');
     const [filterPaymentMethod, setFilterPaymentMethod] = useState('all');
 
+    // Custom Report state
+    const [reportFilters, setReportFilters] = useState({
+        datePreset: 'this_month' as 'today' | 'this_week' | 'this_month' | 'last_3_months' | 'last_6_months' | 'last_12_months' | 'custom',
+        dateFrom: '',
+        dateTo: '',
+        categories: [] as string[],
+        paymentMethods: [] as string[],
+        accountIds: [] as string[],
+        creditCardIds: [] as string[]
+    });
+    const [reportData, setReportData] = useState<any>(null);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
     // Form state
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -319,7 +332,7 @@ export default function ExpensesPage() {
                     </div>
 
                     <div className="flex bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl p-1.5 rounded-2xl shadow-xl border border-white dark:border-slate-700 ring-1 ring-slate-200 dark:ring-slate-800 overflow-x-auto">
-                        {['daily', 'monthly', 'yearly', 'insights'].map(tab => (
+                        {['daily', 'monthly', 'yearly', 'insights', 'reports'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -374,7 +387,436 @@ export default function ExpensesPage() {
                     </div>
                 </div>
 
-                {activeTab === 'insights' ? (
+                {activeTab === 'reports' ? (
+                    /* CUSTOM REPORTS VIEW */
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                        {/* Filter Panel */}
+                        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-10 shadow-xl">
+                            <h3 className="text-2xl font-black mb-8 flex items-center gap-3">
+                                <span className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">📊</span> Custom Report Filters
+                            </h3>
+
+                            <div className="space-y-8">
+                                {/* Date Range Filter */}
+                                <div>
+                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-4 block">Date Range</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                                        {[
+                                            { value: 'today', label: 'Today' },
+                                            { value: 'this_week', label: 'This Week' },
+                                            { value: 'this_month', label: 'This Month' },
+                                            { value: 'last_3_months', label: 'Last 3 Months' },
+                                            { value: 'last_6_months', label: 'Last 6 Months' },
+                                            { value: 'last_12_months', label: 'Last 12 Months' },
+                                            { value: 'custom', label: 'Custom Range' }
+                                        ].map(preset => (
+                                            <button
+                                                key={preset.value}
+                                                type="button"
+                                                onClick={() => setReportFilters({ ...reportFilters, datePreset: preset.value as any })}
+                                                className={`px-4 py-3 rounded-2xl font-bold text-sm transition-all ${reportFilters.datePreset === preset.value
+                                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {reportFilters.datePreset === 'custom' && (
+                                        <div className="grid grid-cols-2 gap-4 mt-4">
+                                            <div>
+                                                <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-2 block">From Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={reportFilters.dateFrom}
+                                                    onChange={(e) => setReportFilters({ ...reportFilters, dateFrom: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-2 block">To Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={reportFilters.dateTo}
+                                                    onChange={(e) => setReportFilters({ ...reportFilters, dateTo: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl px-6 py-4 font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Category Multi-Select */}
+                                <div>
+                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-4 block">Categories (Select Multiple)</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                        {categories.map(cat => (
+                                            <label
+                                                key={cat.id}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer ${reportFilters.categories.includes(cat.name)
+                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={reportFilters.categories.includes(cat.name)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setReportFilters({ ...reportFilters, categories: [...reportFilters.categories, cat.name] });
+                                                        } else {
+                                                            setReportFilters({ ...reportFilters, categories: reportFilters.categories.filter(c => c !== cat.name) });
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                />
+                                                <span className={`w-4 h-4 rounded border-2 flex items-center justify-center ${reportFilters.categories.includes(cat.name) ? 'border-white bg-white' : 'border-slate-400'
+                                                    }`}>
+                                                    {reportFilters.categories.includes(cat.name) && <span className="text-indigo-600 text-xs">✓</span>}
+                                                </span>
+                                                {cat.name}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Payment Method Filter */}
+                                <div>
+                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-4 block">Payment Methods</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {[
+                                            { value: 'cash', label: '🏦 Cash' },
+                                            { value: 'debit_card', label: '💳 Debit Card' },
+                                            { value: 'credit_card', label: '💳 Credit Card' },
+                                            { value: 'bank', label: '🏛️ Bank Transfer' }
+                                        ].map(method => (
+                                            <label
+                                                key={method.value}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all cursor-pointer ${reportFilters.paymentMethods.includes(method.value)
+                                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={reportFilters.paymentMethods.includes(method.value)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setReportFilters({ ...reportFilters, paymentMethods: [...reportFilters.paymentMethods, method.value] });
+                                                        } else {
+                                                            setReportFilters({ ...reportFilters, paymentMethods: reportFilters.paymentMethods.filter(m => m !== method.value) });
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                />
+                                                <span className={`w-4 h-4 rounded border-2 flex items-center justify-center ${reportFilters.paymentMethods.includes(method.value) ? 'border-white bg-white' : 'border-slate-400'
+                                                    }`}>
+                                                    {reportFilters.paymentMethods.includes(method.value) && <span className="text-emerald-600 text-xs">✓</span>}
+                                                </span>
+                                                {method.label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Account/Card Filter */}
+                                <div>
+                                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase ml-2 mb-4 block">Accounts & Cards</label>
+                                    <div className="space-y-4">
+                                        {/* Wallets */}
+                                        {bankAccounts.filter(a => a.accountType === 'Wallet').length > 0 && (
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-500 mb-2 ml-2">Wallets</div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                    {bankAccounts.filter(a => a.accountType === 'Wallet').map(acc => (
+                                                        <label
+                                                            key={acc.id}
+                                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${reportFilters.accountIds.includes(acc.id)
+                                                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                                }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={reportFilters.accountIds.includes(acc.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setReportFilters({ ...reportFilters, accountIds: [...reportFilters.accountIds, acc.id] });
+                                                                    } else {
+                                                                        setReportFilters({ ...reportFilters, accountIds: reportFilters.accountIds.filter(a => a !== acc.id) });
+                                                                    }
+                                                                }}
+                                                                className="hidden"
+                                                            />
+                                                            <span className={`w-3 h-3 rounded border-2 flex items-center justify-center ${reportFilters.accountIds.includes(acc.id) ? 'border-white bg-white' : 'border-slate-400'
+                                                                }`}>
+                                                                {reportFilters.accountIds.includes(acc.id) && <span className="text-purple-600 text-[8px]">✓</span>}
+                                                            </span>
+                                                            {acc.accountName}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Bank Accounts */}
+                                        {bankAccounts.filter(a => a.accountType !== 'Wallet').length > 0 && (
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-500 mb-2 ml-2">Bank Accounts</div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                    {bankAccounts.filter(a => a.accountType !== 'Wallet').map(acc => (
+                                                        <label
+                                                            key={acc.id}
+                                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${reportFilters.accountIds.includes(acc.id)
+                                                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                                }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={reportFilters.accountIds.includes(acc.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setReportFilters({ ...reportFilters, accountIds: [...reportFilters.accountIds, acc.id] });
+                                                                    } else {
+                                                                        setReportFilters({ ...reportFilters, accountIds: reportFilters.accountIds.filter(a => a !== acc.id) });
+                                                                    }
+                                                                }}
+                                                                className="hidden"
+                                                            />
+                                                            <span className={`w-3 h-3 rounded border-2 flex items-center justify-center ${reportFilters.accountIds.includes(acc.id) ? 'border-white bg-white' : 'border-slate-400'
+                                                                }`}>
+                                                                {reportFilters.accountIds.includes(acc.id) && <span className="text-purple-600 text-[8px]">✓</span>}
+                                                            </span>
+                                                            {acc.accountName}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Credit Cards */}
+                                        {creditCards.length > 0 && (
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-500 mb-2 ml-2">Credit Cards</div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                    {creditCards.map(card => (
+                                                        <label
+                                                            key={card.id}
+                                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${reportFilters.creditCardIds.includes(card.id)
+                                                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                                                                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                                                }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={reportFilters.creditCardIds.includes(card.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setReportFilters({ ...reportFilters, creditCardIds: [...reportFilters.creditCardIds, card.id] });
+                                                                    } else {
+                                                                        setReportFilters({ ...reportFilters, creditCardIds: reportFilters.creditCardIds.filter(c => c !== card.id) });
+                                                                    }
+                                                                }}
+                                                                className="hidden"
+                                                            />
+                                                            <span className={`w-3 h-3 rounded border-2 flex items-center justify-center ${reportFilters.creditCardIds.includes(card.id) ? 'border-white bg-white' : 'border-slate-400'
+                                                                }`}>
+                                                                {reportFilters.creditCardIds.includes(card.id) && <span className="text-purple-600 text-[8px]">✓</span>}
+                                                            </span>
+                                                            {card.cardName}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Generate Button */}
+                                <div className="flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setReportFilters({
+                                                datePreset: 'this_month',
+                                                dateFrom: '',
+                                                dateTo: '',
+                                                categories: [],
+                                                paymentMethods: [],
+                                                accountIds: [],
+                                                creditCardIds: []
+                                            });
+                                            setReportData(null);
+                                        }}
+                                        className="px-8 py-4 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-black rounded-2xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                                    >
+                                        Clear Filters
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            setIsGeneratingReport(true);
+                                            try {
+                                                const payload: any = {};
+                                                if (reportFilters.datePreset !== 'custom') {
+                                                    payload.datePreset = reportFilters.datePreset;
+                                                } else {
+                                                    payload.dateFrom = reportFilters.dateFrom;
+                                                    payload.dateTo = reportFilters.dateTo;
+                                                }
+                                                if (reportFilters.categories.length > 0) payload.categories = reportFilters.categories;
+                                                if (reportFilters.paymentMethods.length > 0) payload.paymentMethods = reportFilters.paymentMethods;
+                                                if (reportFilters.accountIds.length > 0) payload.accountIds = reportFilters.accountIds;
+                                                if (reportFilters.creditCardIds.length > 0) payload.creditCardIds = reportFilters.creditCardIds;
+
+                                                const res = await financialDataApi.expenses.getReport(payload);
+                                                setReportData(res.data);
+                                            } catch (err) {
+                                                alert('Failed to generate report');
+                                            } finally {
+                                                setIsGeneratingReport(false);
+                                            }
+                                        }}
+                                        disabled={isGeneratingReport}
+                                        className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-black rounded-2xl shadow-2xl shadow-blue-500/20 transition-all transform hover:scale-[1.01]"
+                                    >
+                                        {isGeneratingReport ? 'Generating Report...' : '📊 Generate Report'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Report Results */}
+                        {reportData && (
+                            <div className="space-y-8">
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white shadow-2xl">
+                                        <div className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Total Amount</div>
+                                        <div className="text-3xl font-black font-mono">{currency.symbol} {convert(reportData.summary.total, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Transactions</div>
+                                        <div className="text-3xl font-black text-slate-900 dark:text-white">{reportData.summary.count}</div>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Categories</div>
+                                        <div className="text-3xl font-black text-slate-900 dark:text-white">{Object.keys(reportData.summary.byCategory).length}</div>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl">
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Avg per Transaction</div>
+                                        <div className="text-3xl font-black text-slate-900 dark:text-white">{currency.symbol} {reportData.summary.count > 0 ? convert(reportData.summary.total / reportData.summary.count, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</div>
+                                    </div>
+                                </div>
+
+                                {/* Charts */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+                                        <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                                            <span className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl">🍕</span> By Category
+                                        </h3>
+                                        <div className="h-[300px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={Object.entries(reportData.summary.byCategory).map(([name, value]) => ({ name, value: convert(value as number, 'AED') }))}
+                                                        dataKey="value"
+                                                        nameKey="name"
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={60}
+                                                        outerRadius={100}
+                                                        paddingAngle={5}
+                                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                    >
+                                                        {Object.keys(reportData.summary.byCategory).map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(val: number) => `${currency.symbol} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+                                        <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
+                                            <span className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">💳</span> By Payment Method
+                                        </h3>
+                                        <div className="h-[300px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={Object.entries(reportData.summary.byPaymentMethod).map(([name, value]) => ({
+                                                            name: name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                                                            value: convert(value as number, 'AED')
+                                                        }))}
+                                                        dataKey="value"
+                                                        nameKey="name"
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={60}
+                                                        outerRadius={100}
+                                                        paddingAngle={5}
+                                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                    >
+                                                        {Object.keys(reportData.summary.byPaymentMethod).map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} stroke="none" />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(val: number) => `${currency.symbol} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Transaction List */}
+                                <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+                                    <h3 className="text-xl font-bold mb-6 flex items-center justify-between">
+                                        <span className="flex items-center gap-3">
+                                            <span className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl">📝</span> Transaction Details
+                                        </span>
+                                        <span className="text-sm font-bold bg-slate-200 dark:bg-slate-700 px-4 py-2 rounded-full">{reportData.expenses.length} items</span>
+                                    </h3>
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+                                        {reportData.expenses.map((expense: any) => (
+                                            <div key={expense.id} className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-[2rem] border border-transparent hover:border-blue-500/30 transition-all">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] font-black text-slate-400 opacity-60 uppercase">{new Date(expense.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                            <span className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">{expense.category}</span>
+                                                        </div>
+                                                        <div className="text-2xl font-black tracking-tighter">
+                                                            {expense.merchant || 'General Expenditure'}
+                                                        </div>
+                                                        <div className="flex items-center gap-3 mt-2">
+                                                            <span className="text-[10px] font-black px-2.5 py-1 bg-slate-200 dark:bg-slate-700 rounded-lg opacity-80 uppercase">{expense.paymentMethod?.replace('_', ' ')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-2xl font-black text-rose-500 font-mono tracking-tighter">
+                                                            -{currency.symbol}{convert(expense.amount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {expense.notes && (
+                                                    <div className="mt-4 p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl text-xs text-slate-500 italic border border-slate-100 dark:border-slate-800">
+                                                        "{expense.notes}"
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : activeTab === 'insights' ? (
                     /* INSIGHTS VIEW */
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
                         <div className="lg:col-span-2 space-y-8">
