@@ -130,3 +130,31 @@ export class UpdateExpenseDto {
     @IsOptional()
     confidence?: number;
 }
+
+export class ReportFilterDto {
+    // Date range - either use preset OR custom dates
+    @IsString()
+    @IsOptional()
+    datePreset?: 'today' | 'this_week' | 'this_month' | 'last_3_months' | 'last_6_months' | 'last_12_months';
+
+    @IsDateString()
+    @IsOptional()
+    dateFrom?: string;
+
+    @IsDateString()
+    @IsOptional()
+    dateTo?: string;
+
+    // Multi-select filters
+    @IsOptional()
+    categories?: string[];  // Array of category names
+
+    @IsOptional()
+    paymentMethods?: string[];  // Array of payment methods: cash, debit_card, credit_card, bank
+
+    @IsOptional()
+    accountIds?: string[];  // Bank account IDs (for cash/debit)
+
+    @IsOptional()
+    creditCardIds?: string[];  // Credit card IDs
+}

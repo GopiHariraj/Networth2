@@ -64,6 +64,7 @@ export const expensesApi = {
     delete: (id: string) => apiClient.delete(`/expenses/${id}`),
     getInsights: () => apiClient.get('/expenses/insights'),
     parseAi: (text: string) => apiClient.post('/expenses/ai-parse-text', { text }),
+    getReport: (filters: any) => apiClient.post('/expenses/report', filters),
 };
 
 // Expense Categories API

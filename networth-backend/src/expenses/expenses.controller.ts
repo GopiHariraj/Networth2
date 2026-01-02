@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request } f
 import { GeminiService } from '../common/openai/gemini.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ExpensesService } from './expenses.service';
-import { CreateExpenseDto, UpdateExpenseDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseDto, ReportFilterDto } from './dto/expense.dto';
 
 @Controller('expenses')
 @UseGuards(JwtAuthGuard)
@@ -20,6 +20,11 @@ export class ExpensesController {
   @Get('insights')
   async getInsights(@Request() req: any) {
     return this.expensesService.getInsights(req.user.id);
+  }
+
+  @Post('report')
+  async getReport(@Request() req: any, @Body() filterDto: ReportFilterDto) {
+    return this.expensesService.generateReport(req.user.id, filterDto);
   }
 
   @Get(':id')

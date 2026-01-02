@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { CreateExpenseDto, UpdateExpenseDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseDto, ReportFilterDto } from './dto/expense.dto';
 
 @Injectable()
 export class ExpensesService {
@@ -275,6 +275,129 @@ export class ExpensesService {
             constByCategory,
             costByPaymentMethod,
             monthlyTrend: Object.keys(monthlyTrend).map(month => ({ month, amount: monthlyTrend[month] })),
+        };
+    }
+
+    async generateReport(userId: string, filterDto: ReportFilterDto) {
+        // Calculate date range
+        let dateFrom: Date;
+        let dateTo: Date = new Date();
+        dateTo.setHours(23, 59, 59, 999); // End of today
+
+        if (filterDto.datePreset) {
+            const now = new Date();
+            switch (filterDto.datePreset) {
+                case 'today':
+                    dateFrom = new Date(now.setHours(0, 0, 0, 0));
+                    break;
+                case 'this_week':
+                    dateFrom = new Date(now);
+                    dateFrom.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+                    dateFrom.setHours(0, 0, 0, 0);
+                    break;
+                case 'this_month':
+                    dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'last_3_months':
+                    dateFrom = new Date(now);
+                    dateFrom.setMonth(now.getMonth() - 3);
+                    break;
+                case 'last_6_months':
+                    dateFrom = new Date(now);
+                    dateFrom.setMonth(now.getMonth() - 6);
+                    break;
+                case 'last_12_months':
+                    dateFrom = new Date(now);
+                    dateFrom.setMonth(now.getMonth() - 12);
+                    break;
+                default:
+                    dateFrom = new Date(0); // Beginning of time
+            }
+        } else if (filterDto.dateFrom && filterDto.dateTo) {
+            // Custom date range
+            dateFrom = new Date(filterDto.dateFrom);
+            dateTo = new Date(filterDto.dateTo);
+            dateTo.setHours(23, 59, 59, 999);
+        } else {
+            // No date filter, get all
+            dateFrom = new Date(0);
+        }
+
+        // Build where clause
+        const whereClause: any = {
+            userId,
+            date: {
+                gte: dateFrom,
+                lte: dateTo,
+            },
+        };
+
+        // Add category filter
+        if (filterDto.categories && filterDto.categories.length > 0) {
+            whereClause.category = { in: filterDto.categories };
+        }
+
+        // Add payment method filter
+        if (filterDto.paymentMethods && filterDto.paymentMethods.length > 0) {
+            whereClause.paymentMethod = { in: filterDto.paymentMethods };
+        }
+
+        // Add account/card filter
+        if ((filterDto.accountIds && filterDto.accountIds.length > 0) ||
+            (filterDto.creditCardIds && filterDto.creditCardIds.length > 0)) {
+            const orConditions = [];
+
+            if (filterDto.accountIds && filterDto.accountIds.length > 0) {
+                orConditions.push({ accountId: { in: filterDto.accountIds } });
+            }
+
+            if (filterDto.creditCardIds && filterDto.creditCardIds.length > 0) {
+                orConditions.push({ creditCardId: { in: filterDto.creditCardIds } });
+            }
+
+            whereClause.OR = orConditions;
+        }
+
+        // Fetch filtered expenses
+        const expenses = await this.prisma.expense.findMany({
+            where: whereClause,
+            orderBy: { date: 'desc' },
+        });
+
+        // Calculate aggregations
+        const total = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        const count = expenses.length;
+
+        // Group by category
+        const byCategory = expenses.reduce((acc: any, exp) => {
+            if (!acc[exp.category]) acc[exp.category] = 0;
+            acc[exp.category] += Number(exp.amount);
+            return acc;
+        }, {});
+
+        // Group by payment method
+        const byPaymentMethod = expenses.reduce((acc: any, exp) => {
+            const method = exp.paymentMethod || 'cash';
+            if (!acc[method]) acc[method] = 0;
+            acc[method] += Number(exp.amount);
+            return acc;
+        }, {});
+
+        return {
+            expenses: expenses.map(e => ({
+                ...e,
+                amount: parseFloat(e.amount.toString()),
+            })),
+            summary: {
+                total,
+                count,
+                byCategory,
+                byPaymentMethod,
+                dateRange: {
+                    from: dateFrom.toISOString(),
+                    to: dateTo.toISOString(),
+                },
+            },
         };
     }
 }
