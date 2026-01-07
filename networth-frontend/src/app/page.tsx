@@ -76,7 +76,12 @@ export default function Dashboard() {
 
     const fetchDashboard = async () => {
         try {
-            const res = await transactionsApi.getDashboard();
+            const params: any = { period: filterPeriod };
+            if (filterPeriod === 'Custom' && customStartDate && customEndDate) {
+                params.startDate = customStartDate;
+                params.endDate = customEndDate;
+            }
+            const res = await transactionsApi.getDashboard(params);
             setDashboardData(res.data);
         } catch (error) {
             console.error(error);
@@ -85,7 +90,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchDashboard();
-    }, []);
+    }, [filterPeriod, customStartDate, customEndDate]);
 
     const filterOptions = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual', 'Custom'];
 
@@ -173,7 +178,7 @@ export default function Dashboard() {
                             <h3 className="font-bold text-lg mb-6">Net Worth Trend</h3>
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={netWorthTrendLine}>
+                                    <AreaChart data={dashboardData?.trendData || netWorthTrendLine}>
                                         <defs>
                                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -181,7 +186,7 @@ export default function Dashboard() {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                        <XAxis dataKey="month" hide />
+                                        <XAxis dataKey="month" hide={filterPeriod === 'Daily'} />
                                         <YAxis hide />
                                         <Tooltip />
                                         <Area type="monotone" dataKey="netWorth" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />

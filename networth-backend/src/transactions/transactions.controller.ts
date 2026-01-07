@@ -40,7 +40,16 @@ export class TransactionsController {
   }
 
   @Get('dashboard')
-  getDashboard(@Request() req: any) {
-    return this.transactionsService.getDashboardData(req.user.id);
+  getDashboard(
+    @Request() req: any,
+    @Query('period') period?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.transactionsService.getDashboardData(req.user.id, {
+      period,
+      startDate,
+      endDate,
+    });
   }
 }

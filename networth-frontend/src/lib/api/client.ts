@@ -131,7 +131,7 @@ export const transactionsApi = {
     parseSMS: (text: string) => apiClient.post('/transactions/sms', { text }),
     analyzeReceipt: (image: string) => apiClient.post('/transactions/receipt', { image }),
     findAll: () => apiClient.get('/transactions'),
-    getDashboard: () => apiClient.get('/transactions/dashboard'),
+    getDashboard: (params?: any) => apiClient.get('/transactions/dashboard', { params }),
 };
 
 export default apiClient;
