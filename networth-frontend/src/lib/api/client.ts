@@ -64,51 +64,32 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // If 401 and we haven't retried yet, try to refresh token
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+        if (error.response?.status === 401) {
+            console.warn('[API Client] Unauthorized access - redirecting to login');
 
+            // Clear all auth data
+            const savedUser = localStorage.getItem('user');
+            let userId: string | null = null;
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
-                if (refreshToken) {
-                    const response = await axios.post(`${API_URL}/auth/refresh`, {
-                        refreshToken,
-                    });
-
-                    const { token } = response.data;
-                    localStorage.setItem('token', token);
-
-                    // Retry original request with new token
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return apiClient(originalRequest);
+                if (savedUser) {
+                    const user = JSON.parse(savedUser);
+                    userId = user.id;
                 }
-            } catch (refreshError) {
-                // Refresh failed, clear all user data and redirect to login
-                const savedUser = localStorage.getItem('user');
-                let userId: string | null = null;
+            } catch (e) { }
 
-                try {
-                    if (savedUser) {
-                        const user = JSON.parse(savedUser);
-                        userId = user.id;
-                    }
-                } catch (e) {
-                    // ignore parsing errors
-                }
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+            document.cookie = 'token=; path=/; max-age=0';
 
-                // Clear authentication data
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('refreshToken');
+            if (userId) {
+                localStorage.removeItem(`activeGoal_${userId}`);
+                localStorage.removeItem(`preferredCurrency_${userId}`);
+            }
 
-                // Clear user-scoped data
-                if (userId) {
-                    localStorage.removeItem(`activeGoal_${userId}`);
-                    localStorage.removeItem(`preferredCurrency_${userId}`);
-                }
-
+            // Only redirect if we are not already on the login page
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                 window.location.href = '/login';
-                return Promise.reject(refreshError);
             }
         }
 

@@ -37,12 +37,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        // Check for existing auth
+    // Helper to check if JWT token is expired
+    const isTokenExpired = (token: string): boolean => {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
+            const { exp } = JSON.parse(jsonPayload);
+            if (!exp) return false;
+            // Add 10 second buffer to exp time
+            return Date.now() >= exp * 1000 - 10000;
+        } catch (e) {
+            return true; // Assume expired if invalid
+        }
+    };
+
+    const checkTokenAuth = React.useCallback(() => {
         const savedToken = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
 
         if (savedToken && savedUser) {
+            if (isTokenExpired(savedToken)) {
+                console.warn('[AuthContext] Token expired, logging out');
+                logout();
+                return;
+            }
+
             try {
                 const parsedUser = JSON.parse(savedUser);
                 setUser(parsedUser);
@@ -58,9 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             } catch (e) {
                 console.error('Failed to parse stored user', e);
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                setIsLoading(false);
+                logout();
             }
         } else {
             // Redirect to login if not authenticated and not on public page
@@ -72,6 +95,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         }
     }, [pathname, router]);
+
+    useEffect(() => {
+        checkTokenAuth();
+
+        // Listen for window focus to catch expiration when user returns to tab
+        const handleFocus = () => {
+            checkTokenAuth();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [checkTokenAuth]);
 
     const login = (newToken: string, userData: User) => {
         localStorage.setItem('token', newToken);
