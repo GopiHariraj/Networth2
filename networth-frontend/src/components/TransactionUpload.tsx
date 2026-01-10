@@ -60,7 +60,14 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
             if (manualForm.accountId.startsWith('cc_')) {
                 payload.creditCardId = manualForm.accountId.replace('cc_', '');
                 delete payload.accountId;
+            } else if (payload.accountId === '') {
+                delete payload.accountId;
             }
+
+            // Clean up unused fields to prevent validation errors
+            if (!payload.creditCardId) delete payload.creditCardId;
+            if (payload.categoryId === '') delete payload.categoryId;
+            if (payload.merchant === '') delete payload.merchant;
 
             const res = await transactionsApi.create(payload);
             setResult(res.data);

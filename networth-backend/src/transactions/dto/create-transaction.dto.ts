@@ -30,6 +30,9 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   accountId?: string;
+
+  @IsOptional()
+  @IsString()
   creditCardId?: string;
 }
 
