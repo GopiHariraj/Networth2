@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar, { HamburgerButton } from './Sidebar';
 import Calculator from './Calculator';
+import ProductTour from './ProductTour';
 import { useAuth } from '../lib/auth-context';
+import { TourProvider } from '../lib/tour-context';
 
 // Breakpoint constants
 const BREAKPOINTS = {
@@ -111,31 +113,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-            {isAuthenticated && (
-                <Sidebar
-                    isOpen={isSidebarOpen}
-                    isCollapsed={isSidebarCollapsed}
-                    onToggleOpen={toggleOpen}
-                    onToggleCollapse={toggleCollapse}
-                />
-            )}
-
-            <div className={`flex-1 transition-all duration-300 ${getContentPadding()}`}>
-                {/* Header with Hamburger */}
-                {isAuthenticated && isMobile && (
-                    <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 z-20 flex items-center gap-4">
-                        <HamburgerButton onClick={toggleOpen} isOpen={isSidebarOpen} />
-                        <h1 className="font-bold text-lg text-slate-900 dark:text-white">E-Daily</h1>
-                    </header>
+        <TourProvider>
+            <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+                {isAuthenticated && (
+                    <Sidebar
+                        isOpen={isSidebarOpen}
+                        isCollapsed={isSidebarCollapsed}
+                        onToggleOpen={toggleOpen}
+                        onToggleCollapse={toggleCollapse}
+                    />
                 )}
 
-                <div className={isMobile && isAuthenticated ? 'pt-16' : ''}>
-                    {children}
-                </div>
-            </div>
+                <div className={`flex-1 transition-all duration-300 ${getContentPadding()}`}>
+                    {/* Header with Hamburger */}
+                    {isAuthenticated && isMobile && (
+                        <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 z-20 flex items-center gap-4">
+                            <HamburgerButton onClick={toggleOpen} isOpen={isSidebarOpen} />
+                            <h1 className="font-bold text-lg text-slate-900 dark:text-white">E-Daily</h1>
+                        </header>
+                    )}
 
-            {isAuthenticated && <Calculator />}
-        </div>
+                    <div className={isMobile && isAuthenticated ? 'pt-16' : ''}>
+                        {children}
+                    </div>
+                </div>
+
+                {isAuthenticated && <Calculator />}
+                {isAuthenticated && <ProductTour />}
+            </div>
+        </TourProvider>
     );
 }

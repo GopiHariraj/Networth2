@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth-context';
 
 const MENU_ITEMS = [
     { name: 'Dashboard', icon: '📊', path: '/' },
+    { name: 'Goals', icon: '🎯', path: '/goals' },
     { name: 'Cash', icon: '💰', path: '/cash' },
     { name: 'Gold', icon: '🥇', path: '/gold' },
     { name: 'Stocks', icon: '📈', path: '/stocks' },
@@ -91,6 +92,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                     {filteredItems.map((item) => (
                         <Link
                             key={item.path}
+                            id={`sidebar-link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                             href={item.path}
                             prefetch={true}
                             onClick={() => onToggleOpen?.()} // Close on mobile when link clicked
@@ -148,6 +150,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                             )}
                             <Link
                                 href="/settings"
+                                id="sidebar-settings-link"
                                 onClick={() => setIsMenuOpen(false)}
                                 className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
                             >
