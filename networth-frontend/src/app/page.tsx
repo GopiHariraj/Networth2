@@ -113,7 +113,7 @@ export default function Dashboard() {
                         <h1 className="text-3xl font-bold">Financial Overview</h1>
                         <p className="text-slate-500 mt-2">Track your daily expenses and net worth.</p>
                     </div>
-                    <a href="/goals" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">🎯 Goals</a>
+                    <a href="/goals" id="dashboard-goals-button" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">🎯 Goals</a>
                 </header>
 
                 <GoalProgress

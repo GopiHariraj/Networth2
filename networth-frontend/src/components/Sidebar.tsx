@@ -7,7 +7,6 @@ import { useAuth } from '../lib/auth-context';
 
 const MENU_ITEMS = [
     { name: 'Dashboard', icon: '📊', path: '/' },
-    { name: 'Goals', icon: '🎯', path: '/goals' },
     { name: 'Cash', icon: '💰', path: '/cash' },
     { name: 'Gold', icon: '🥇', path: '/gold' },
     { name: 'Stocks', icon: '📈', path: '/stocks' },

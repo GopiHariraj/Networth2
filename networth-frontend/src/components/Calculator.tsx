@@ -186,9 +186,9 @@ export default function Calculator() {
                                                             else handleInput(btn);
                                                         }}
                                                         className={`h-12 rounded-xl font-bold transition-all active:scale-95 ${isEq ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30' :
-                                                                isClear ? 'bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50' :
-                                                                    isOp ? 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-blue-600' :
-                                                                        'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 shadow-sm'
+                                                            isClear ? 'bg-red-100 hover:bg-red-200 text-red-600 dark:bg-red-900/30 dark:hover:bg-red-900/50' :
+                                                                isOp ? 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-blue-600' :
+                                                                    'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 shadow-sm'
                                                             }`}
                                                     >
                                                         {btn}
@@ -238,8 +238,8 @@ export default function Calculator() {
                 </div>
             )}
 
-            {/* Floating Toggle Button */}
             <button
+                id="calculator-toggle-button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95 ${isOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}

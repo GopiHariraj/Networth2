@@ -7,6 +7,7 @@ export default function ProductTour() {
     const { isTourVisible, currentStep, steps, nextStep, prevStep, skipTour } = useTour();
     const [coords, setCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const [isCentered, setIsCentered] = useState(false);
+    const [popoverPosition, setPopoverPosition] = useState<'right' | 'left' | 'top' | 'bottom'>('right');
     const popoverRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -41,6 +42,19 @@ export default function ProductTour() {
                     height: rect.height
                 });
                 setIsCentered(false);
+
+                // Smart positioning based on screen location
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+
+                if (rect.left > screenWidth * 0.7) {
+                    setPopoverPosition('left');
+                } else if (rect.top > screenHeight * 0.7) {
+                    setPopoverPosition('top');
+                } else {
+                    setPopoverPosition('right');
+                }
+
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
                 setCoords(null);
@@ -60,6 +74,43 @@ export default function ProductTour() {
 
     const currentTourStep = steps[currentStep];
     const hasSpotlight = coords && !isCentered;
+
+    const getPopoverStyle = () => {
+        if (isCentered || !coords) {
+            return {
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)'
+            };
+        }
+
+        switch (popoverPosition) {
+            case 'left':
+                return {
+                    top: coords.top + (coords.height / 2),
+                    left: coords.left - 24,
+                    transform: 'translate(-100%, -50%)'
+                };
+            case 'top':
+                return {
+                    top: coords.top - 24,
+                    left: coords.left + (coords.width / 2),
+                    transform: 'translate(-50%, -100%)'
+                };
+            case 'bottom':
+                return {
+                    top: coords.top + coords.height + 24,
+                    left: coords.left + (coords.width / 2),
+                    transform: 'translateX(-50%)'
+                };
+            default: // right
+                return {
+                    top: coords.top + (coords.height / 2),
+                    left: coords.left + coords.width + 24,
+                    transform: 'translateY(-50%)'
+                };
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] pointer-events-none">
@@ -100,20 +151,16 @@ export default function ProductTour() {
             <div
                 ref={popoverRef}
                 className="absolute pointer-events-auto transition-all duration-500"
-                style={isCentered ? {
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)'
-                } : {
-                    top: coords ? coords.top + (coords.height / 2) : '50%',
-                    left: coords ? coords.left + coords.width + 24 : '50%',
-                    transform: coords ? 'translateY(-50%)' : 'translate(-50%, -50%)'
-                }}
+                style={getPopoverStyle()}
             >
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl border border-blue-100 dark:border-blue-900/50 w-[360px] relative animate-in fade-in zoom-in duration-300">
-                    {/* Arrow (only if not centered) */}
+                    {/* Arrow */}
                     {!isCentered && coords && (
-                        <div className="absolute top-1/2 -left-2 w-4 h-4 bg-white dark:bg-slate-800 border-l border-b border-blue-100 dark:border-blue-900/50 rotate-45 -translate-y-1/2" />
+                        <div className={`absolute w-4 h-4 bg-white dark:bg-slate-800 border-blue-100 dark:border-blue-900/50 rotate-45 ${popoverPosition === 'right' ? 'top-1/2 -left-2 -translate-y-1/2 border-l border-b' :
+                                popoverPosition === 'left' ? 'top-1/2 -right-2 -translate-y-1/2 border-r border-t' :
+                                    popoverPosition === 'top' ? '-bottom-2 left-1/2 -translate-x-1/2 border-r border-b' :
+                                        ' -top-2 left-1/2 -translate-x-1/2 border-l border-t'
+                            }`} />
                     )}
 
                     <div className="relative">

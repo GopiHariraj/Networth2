@@ -24,48 +24,54 @@ interface TourContextType {
 const TOUR_STEPS: TourStep[] = [
     {
         title: 'Welcome to Net Worth! 🚀',
-        description: 'Take a quick 2-minute tour to see how you can track your net worth, expenses, and financial goals all in one place.',
+        description: 'Take a quick tour to learn how to track your net worth, expenses, and investments like a pro.',
     },
     {
         targetId: 'sidebar-nav-container',
         title: 'Your Command Center 🧭',
-        description: 'Access all your financial modules here. You can customize which ones are visible in the settings to keep your sidebar clean.',
+        description: 'Access all main modules here: Assets, Expenses, Investments, Insurance, and Reports.',
         position: 'right'
     },
     {
+        targetId: 'calculator-toggle-button',
+        title: 'Quick Calculations 🧮',
+        description: 'Quickly calculate EMI, investment returns, profit/loss, and conversions on the fly.',
+        position: 'left'
+    },
+    {
         targetId: 'dashboard-summary-cards',
-        title: 'Dashboard at a Glance 📊',
-        description: 'See your real-time net worth, current month\'s income vs. expenses, and progress toward your primary goal.',
+        title: 'Dashboard Overview 📊',
+        description: 'See your real-time net worth, charts, and financial status at a glance.',
+        position: 'bottom'
+    },
+    {
+        targetId: 'dashboard-goals-button',
+        title: 'Set Your Goals 🎯',
+        description: 'Set and track your financial goals here. Changes reflect across the entire app.',
         position: 'bottom'
     },
     {
         targetId: 'sidebar-link-expenses',
         title: 'Master Your Expenses 💵',
-        description: 'Add expenses manually, upload bills, or let our Gemini AI scan your statements to categorize spending automatically.',
+        description: 'Add expenses manually, via Gemini AI, or by uploading bills to stay on budget.',
         position: 'right'
     },
     {
         targetId: 'sidebar-link-cash',
-        title: 'Track All Your Assets 💎',
-        description: 'Easily manage your Cash, Gold, Stocks, Mutual Funds, and Properties. Everything is converted to your home currency.',
-        position: 'right'
-    },
-    {
-        targetId: 'sidebar-link-goals',
-        title: 'Financial Milestones 🎯',
-        description: 'Set specific goals for savings, asset accumulation, or debt reduction, and watch your progress update in real-time.',
+        title: 'Track All Assets 💎',
+        description: 'Manage Cash, Gold, Stocks, Mutual Funds, and Property to see your complete wealth.',
         position: 'right'
     },
     {
         targetId: 'sidebar-link-ai-analysis',
         title: 'AI Smart Insights ✨',
-        description: 'Chat with your personal financial assistant to analyze trends, ask complex questions, or generate custom reports.',
+        description: 'Chat with our AI for deep financial analysis and custom graph-based insights.',
         position: 'right'
     },
     {
         targetId: 'sidebar-settings-link',
-        title: 'Settings & Preferences ⚙️',
-        description: 'Change your display currency, enable/disable modules, and manage your profile and security settings.',
+        title: 'Personalize Your App ⚙️',
+        description: 'Pick your currency, enable/disable modules, and manage your preferences in settings.',
         position: 'right'
     }
 ];
