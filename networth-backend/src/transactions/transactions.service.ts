@@ -27,8 +27,8 @@ export class TransactionsService {
           merchant: dto.merchant,
           type: dto.type || 'EXPENSE',
           userId: userId,
-          categoryId: dto.categoryId,
-          accountId: dto.accountId,
+          categoryId: dto.categoryId || null,
+          accountId: dto.accountId || null,
         },
       });
 
@@ -62,13 +62,13 @@ export class TransactionsService {
             data: {
               userId,
               amount: dto.amount,
-              description: dto.description,
+              notes: dto.description,
               date: dto.date ? new Date(dto.date) : new Date(),
               merchant: dto.merchant,
               category: 'General', // Default or fetch from categoryId
               paymentMethod: dto.creditCardId ? 'credit_card' : (dto.accountId ? 'debit_card' : 'cash'),
-              accountId: dto.accountId,
-              creditCardId: dto.creditCardId,
+              accountId: dto.accountId || null,
+              creditCardId: dto.creditCardId || null,
               source: 'manual',
               periodTag: 'monthly',
             } as any,
