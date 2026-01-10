@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+.casio-calculator {
+    background: linear-gradient(135deg, #2c3e50 0%, #000000 100%);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 100%;
+    max-width: 400px;
+    font-family: 'Inter', sans-serif;
+    border: 4px solid #34495e;
+}
+
+.casio-display-container {
+    background: #9cad8d;
+    /* LCD Green */
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 4px inset rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    position: relative;
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.casio-indicators {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.casio-main-display {
+    font-family: 'Orbitron', 'Digital-7', monospace;
+    font-size: 42px;
+    text-align: right;
+    color: #1a2a1a;
+    letter-spacing: 2px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.casio-controls-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding: 0 5px;
+}
+
+.casio-switch-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.casio-switch-label {
+    font-size: 9px;
+    color: #bdc3c7;
+    text-align: center;
+    font-weight: bold;
+}
+
+.casio-switch {
+    background: #1a1a1a;
+    height: 12px;
+    width: 50px;
+    border-radius: 6px;
+    position: relative;
+    cursor: pointer;
+}
+
+.casio-switch-knob {
+    background: #ecf0f1;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    position: absolute;
+    top: -2px;
+    transition: left 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.casio-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.casio-btn {
+    height: 45px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 #1a1a1a;
+    user-select: none;
+}
+
+.casio-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #1a1a1a;
+}
+
+.btn-num {
+    background: #34495e;
+    color: #fff;
+}
+
+.btn-num:hover {
+    background: #3e5871;
+}
+
+.btn-op {
+    background: #bdc3c7;
+    color: #2c3e50;
+}
+
+.btn-op:hover {
+    background: #cfd4d8;
+}
+
+.btn-func {
+    background: #7f8c8d;
+    color: #fff;
+    font-size: 12px;
+}
+
+.btn-func:hover {
+    background: #95a5a6;
+}
+
+.btn-memory {
+    background: #16a085;
+    color: #fff;
+}
+
+.btn-memory:hover {
+    background: #1abc9c;
+}
+
+.btn-clear {
+    background: #c0392b;
+    color: #fff;
+}
+
+.btn-clear:hover {
+    background: #e74c3c;
+}
+
+.btn-equal {
+    background: #2980b9;
+    color: #fff;
+    grid-row: span 2;
+    height: 100px;
+}
+
+.btn-equal:hover {
+    background: #3498db;
+}
+
+.casio-check-mode {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 10px;
+    color: #c0392b;
+    font-weight: bold;
+    text-transform: uppercase;
+}
