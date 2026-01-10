@@ -71,7 +71,8 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
 
             const res = await transactionsApi.create(payload);
             setResult(res.data);
-            onTransactionAdded();
+            onTransactionAdded(); // Refresh dashboard data
+            await data.refreshNetWorth(); // Refresh Cash page balances
             setManualForm({
                 amount: '',
                 description: '',
