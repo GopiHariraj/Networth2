@@ -32,17 +32,46 @@ export class TransactionsService {
         },
       });
 
-      if (dto.accountId) {
+      if (dto.accountId || dto.creditCardId) {
         const amount = Number(dto.amount);
         if (dto.type === 'INCOME') {
-          await tx.bankAccount.update({
-            where: { id: dto.accountId },
-            data: { balance: { increment: amount } },
-          });
+          if (dto.accountId) {
+            await tx.bankAccount.update({
+              where: { id: dto.accountId },
+              data: { balance: { increment: amount } },
+            });
+          }
         } else if (dto.type === 'EXPENSE') {
-          await tx.bankAccount.update({
-            where: { id: dto.accountId },
-            data: { balance: { decrement: amount } },
+          // Handle Bank Account / Wallet
+          if (dto.accountId) {
+            await tx.bankAccount.update({
+              where: { id: dto.accountId },
+              data: { balance: { decrement: amount } },
+            });
+          }
+          // Handle Credit Card
+          if (dto.creditCardId) {
+            await tx.creditCard.update({
+              where: { id: dto.creditCardId },
+              data: { usedAmount: { increment: amount } },
+            });
+          }
+
+          // Synchronize with Expense table
+          await tx.expense.create({
+            data: {
+              userId,
+              amount: dto.amount,
+              description: dto.description,
+              date: dto.date ? new Date(dto.date) : new Date(),
+              merchant: dto.merchant,
+              category: 'General', // Default or fetch from categoryId
+              paymentMethod: dto.creditCardId ? 'credit_card' : (dto.accountId ? 'debit_card' : 'cash'),
+              accountId: dto.accountId,
+              creditCardId: dto.creditCardId,
+              source: 'manual',
+              periodTag: 'monthly',
+            } as any,
           });
         }
       }
@@ -303,11 +332,11 @@ export class TransactionsService {
     }, []);
 
     const income = Number(incomeResult._sum.amount || 0);
-    const transactionExpense = Number(transactionExpenseResult._sum.amount || 0);
+    // const transactionExpense = Number(transactionExpenseResult._sum.amount || 0); // Removed to avoid double counting
     const expensesTableTotal = Number(expensesResult._sum.amount || 0);
 
-    // Total expenses = expenses from transactions table + expenses from expenses table
-    const totalExpense = transactionExpense + expensesTableTotal;
+    // Total expenses = exclusively from expenses table now that TransactionsService.create syncs them
+    const totalExpense = expensesTableTotal;
 
     // Combine and sort recent transactions from both sources
     const combinedRecentTransactions = [

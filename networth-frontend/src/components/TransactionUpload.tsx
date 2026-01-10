@@ -24,7 +24,8 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
         type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
         date: new Date().toISOString().split('T')[0],
         merchant: '',
-        accountId: ''
+        accountId: '',
+        creditCardId: ''
     });
 
     const handleAnalyzeSMS = async () => {
@@ -49,11 +50,19 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
 
         setLoading(true);
         try {
-            const res = await transactionsApi.create({
+            const payload: any = {
                 ...manualForm,
                 amount: parseFloat(manualForm.amount),
                 source: 'MANUAL'
-            });
+            };
+
+            // Ensure we send the correct ID based on prefixing or logic
+            if (manualForm.accountId.startsWith('cc_')) {
+                payload.creditCardId = manualForm.accountId.replace('cc_', '');
+                delete payload.accountId;
+            }
+
+            const res = await transactionsApi.create(payload);
             setResult(res.data);
             onTransactionAdded();
             setManualForm({
@@ -62,7 +71,8 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
                 type: 'EXPENSE',
                 date: new Date().toISOString().split('T')[0],
                 merchant: '',
-                accountId: ''
+                accountId: '',
+                creditCardId: ''
             });
         } catch (error) {
             console.error(error);
@@ -265,6 +275,13 @@ Examples:
                                         <option key={w.id} value={w.id}>{w.accountName}</option>
                                     ))}
                                 </optgroup>
+                                {manualForm.type === 'EXPENSE' && (
+                                    <optgroup label="Credit Cards" className="font-bold text-slate-400">
+                                        {(data.liabilities.creditCards.items as any[] || []).map(cc => (
+                                            <option key={cc.id} value={`cc_${cc.id}`}>{cc.bankName} - {cc.cardName}</option>
+                                        ))}
+                                    </optgroup>
+                                )}
                             </select>
                             <p className="text-[10px] text-slate-400 mt-1 ml-1">Selecting an account will automatically update its balance.</p>
                         </div>

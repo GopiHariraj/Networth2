@@ -30,6 +30,7 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   accountId?: string;
+  creditCardId?: string;
 }
 
 export class ParseSmsDto {
