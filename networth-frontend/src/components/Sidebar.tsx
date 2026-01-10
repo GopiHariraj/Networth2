@@ -88,7 +88,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                 </button>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto">
                     {filteredItems.map((item) => (
                         <Link
                             key={item.path}
@@ -118,6 +118,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                 {/* User Profile */}
                 <div className="p-4 border-t border-slate-200 dark:border-slate-700 relative">
                     <button
+                        id="sidebar-user-menu-trigger"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className={`flex items-center gap-3 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-left group ${isCollapsed ? 'justify-center' : ''}`}
                         title={isCollapsed ? user?.name : ''}

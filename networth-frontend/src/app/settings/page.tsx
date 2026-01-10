@@ -5,11 +5,13 @@ import { useCurrency, CURRENCIES } from '../../lib/currency-context';
 import { useNetWorth } from '../../lib/networth-context';
 import { useAuth } from '../../lib/auth-context';
 import apiClient from '../../lib/api/client';
+import { useTour } from '../../lib/tour-context';
 
 export default function SettingsPage() {
     const { currency, setCurrency, exchangeRates, lastUpdate, isUsingCache, updateExchangeRates } = useCurrency();
     const { data: networthData } = useNetWorth();
     const { user, updateModuleVisibility } = useAuth();
+    const { startTour } = useTour();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [settings, setSettings] = useState({
         notifications: true,
@@ -386,6 +388,34 @@ export default function SettingsPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    </div>
+
+                    {/* Help & Support */}
+                    <div id="settings-help-section" className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/20 rounded-xl flex items-center justify-center text-2xl">
+                                ❓
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-slate-900 dark:text-white">Help & Support</h2>
+                                <p className="text-sm text-slate-500">Need a refresher on how to use the app?</p>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-sm">Product Tour</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Re-run the guided introduction of Net Worth features.</p>
+                                </div>
+                                <button
+                                    onClick={startTour}
+                                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-all shadow-sm"
+                                >
+                                    Repeat Tour
+                                </button>
+                            </div>
                         </div>
                     </div>
 

@@ -32,7 +32,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ currency, dashboardData, fi
     const net = convert(dashboardData?.summary?.net || 0, 'AED');
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div id="dashboard-summary-cards" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <StatCard
                 label={`Income (${filterPeriod === 'Custom' ? 'Custom' : filterPeriod.replace('ly', '')})`}
                 value={`${currency.symbol} ${income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
