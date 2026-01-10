@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import apiClient, { usersApi } from './api/client';
+import apiClient, { usersApi, apiCache } from './api/client';
 
 interface User {
     id: string;
@@ -122,12 +122,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Dispatch custom event for context providers to react
         window.dispatchEvent(new CustomEvent('userLogin', { detail: { userId: userData.id } }));
 
-        // Force full page reload to pull fresh data from cloud database
-        // This clears all cached state and ensures clean session
         if (userData.forceChangePassword) {
-            window.location.href = '/reset-password';
+            router.push('/reset-password');
         } else {
-            window.location.href = '/';
+            router.push('/');
         }
     };
 
@@ -154,11 +152,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
         setIsAuthenticated(false);
 
+        // Clear Cache API storage
+        apiCache.clear();
+
         // Dispatch custom event for context providers to react
         window.dispatchEvent(new Event('userLogout'));
 
-        // Force full page reload to completely clear state
-        window.location.href = '/login';
+        // Transition to login page
+        router.push('/login');
     };
 
     const updateUser = (data: Partial<User>) => {

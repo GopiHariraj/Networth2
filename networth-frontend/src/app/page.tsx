@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { transactionsApi } from '../lib/api/client';
+import { transactionsApi, apiCache } from '../lib/api/client';
 import { useCurrency } from '../lib/currency-context';
 import { useNetWorth } from '../lib/networth-context';
 import { useAuth } from '../lib/auth-context';
@@ -81,8 +81,20 @@ export default function Dashboard() {
                 params.startDate = customStartDate;
                 params.endDate = customEndDate;
             }
+
+            // 1. Try Cache First for immediate UI
+            const cacheKey = `/transactions/dashboard?${new URLSearchParams(params).toString()}`;
+            const cached = await apiCache.get(cacheKey);
+            if (cached) {
+                setDashboardData(cached);
+            }
+
+            // 2. Fetch fresh data
             const res = await transactionsApi.getDashboard(params);
             setDashboardData(res.data);
+
+            // Cache utility in apiClient interceptor will handle the 'set' for us,
+            // but we need to make sure the key matches.
         } catch (error) {
             console.error(error);
         }

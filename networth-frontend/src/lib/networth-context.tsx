@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { financialDataApi } from './api/financial-data';
+import { apiCache } from './api/client';
 import { useCurrency } from './currency-context';
 import { useAuth } from './auth-context';
 
@@ -38,14 +39,14 @@ interface NetWorthData {
 
 interface NetWorthContextType {
     data: NetWorthData;
-    updateGold: (items: AssetItem[]) => Promise<void>;
-    updateBonds: (items: AssetItem[]) => void;
-    updateStocks: (items: AssetItem[]) => Promise<void>;
-    updateProperty: (items: AssetItem[]) => Promise<void>;
-    updateMutualFunds: (items: AssetItem[]) => void;
-    updateCash: (bankAccounts: AssetItem[], wallets: AssetItem[]) => Promise<void>;
-    updateLoans: (items: AssetItem[]) => Promise<void>;
-    updateCreditCards: (items: AssetItem[]) => void;
+    updateGold: () => Promise<void>;
+    updateBonds: () => Promise<void>;
+    updateStocks: () => Promise<void>;
+    updateProperty: () => Promise<void>;
+    updateMutualFunds: () => Promise<void>;
+    updateCash: () => Promise<void>;
+    updateLoans: () => Promise<void>;
+    updateCreditCards: () => Promise<void>;
     refreshNetWorth: () => Promise<void>;
     resetNetWorth: () => void;
     isLoading: boolean;
@@ -54,12 +55,12 @@ interface NetWorthContextType {
 const NetWorthContext = createContext<NetWorthContextType | undefined>(undefined);
 
 export function NetWorthProvider({ children }: { children: ReactNode }) {
-    const { convert, convertRaw } = useCurrency();
-    const { user } = useAuth();
+    const { convertRaw } = useCurrency();
+    const { user, isAuthenticated } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-    // Raw data states for "super fast" response
+    // Raw data states
     const [goldItems, setGoldItems] = useState<AssetItem[]>([]);
     const [bondItems, setBondItems] = useState<AssetItem[]>([]);
     const [stockItems, setStockItems] = useState<AssetItem[]>([]);
@@ -72,82 +73,44 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     const [creditCardItems, setCreditCardItems] = useState<AssetItem[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString());
 
-    // Individual loaders for category-specific refreshes
-    const loadGold = async () => {
-        try {
-            const res = await financialDataApi.goldAssets.getAll();
-            setGoldItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading gold:', e); }
-    };
+    // Helper to load from cache then fetch
+    const loadCategory = useCallback(async (
+        apiCall: () => Promise<any>,
+        setter: (data: any) => void,
+        cacheKey: string,
+        filterFn?: (data: any) => any
+    ) => {
+        // 1. Try Cache First (Immediate UI)
+        const cached = await apiCache.get(cacheKey);
+        if (cached) {
+            setter(filterFn ? filterFn(cached) : cached);
+        }
 
-    const loadStocks = async () => {
+        // 2. Background Fetch (Stale-While-Revalidate)
         try {
-            const res = await financialDataApi.stockAssets.getAll();
-            setStockItems(res.data || []);
+            const res = await apiCall();
+            const data = res.data || [];
+            setter(filterFn ? filterFn(data) : data);
             setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading stocks:', e); }
-    };
+        } catch (e) {
+            console.error(`Error loading ${cacheKey}:`, e);
+        }
+    }, []);
 
-    const loadProperties = async () => {
-        try {
-            const res = await financialDataApi.properties.getAll();
-            setPropertyItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading properties:', e); }
-    };
+    const loadGold = useCallback(() => loadCategory(financialDataApi.goldAssets.getAll, setGoldItems, '/gold-assets'), [loadCategory]);
+    const loadStocks = useCallback(() => loadCategory(financialDataApi.stockAssets.getAll, setStockItems, '/stock-assets'), [loadCategory]);
+    const loadProperties = useCallback(() => loadCategory(financialDataApi.properties.getAll, setPropertyItems, '/properties'), [loadCategory]);
+    const loadBankAccounts = useCallback(() => loadCategory(financialDataApi.bankAccounts.getAll, (all) => {
+        setBankAccounts(all.filter((a: any) => a.accountType !== 'Wallet'));
+        setWallets(all.filter((a: any) => a.accountType === 'Wallet'));
+    }, '/bank-accounts'), [loadCategory]);
+    const loadLoans = useCallback(() => loadCategory(financialDataApi.loans.getAll, setLoanItems, '/loans'), [loadCategory]);
+    const loadInsurance = useCallback(() => loadCategory((financialDataApi as any).insurance.getAll, setInsuranceItems, '/insurance'), [loadCategory]);
+    const loadBonds = useCallback(() => loadCategory(financialDataApi.bondAssets.getAll, setBondItems, '/bond-assets'), [loadCategory]);
+    const loadMutualFunds = useCallback(() => loadCategory(financialDataApi.mutualFunds.getAll, setMutualFundItems, '/mutual-fund-assets'), [loadCategory]);
+    const loadCreditCards = useCallback(() => loadCategory(financialDataApi.creditCards.getAll, setCreditCardItems, '/credit-cards'), [loadCategory]);
 
-    const loadBankAccounts = async () => {
-        try {
-            const res = await financialDataApi.bankAccounts.getAll();
-            const all = res.data || [];
-            setBankAccounts(all.filter((a: any) => a.accountType !== 'Wallet'));
-            setWallets(all.filter((a: any) => a.accountType === 'Wallet'));
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading bank accounts:', e); }
-    };
-
-    const loadLoans = async () => {
-        try {
-            const res = await financialDataApi.loans.getAll();
-            setLoanItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading loans:', e); }
-    };
-
-    const loadInsurance = async () => {
-        try {
-            const res = await (financialDataApi as any).insurance.getAll();
-            setInsuranceItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading insurance:', e); }
-    };
-
-    const loadBonds = async () => {
-        try {
-            const res = await financialDataApi.bondAssets.getAll();
-            setBondItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading bonds:', e); }
-    };
-
-    const loadMutualFunds = async () => {
-        try {
-            const res = await financialDataApi.mutualFunds.getAll();
-            setMutualFundItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading mutual funds:', e); }
-    };
-
-    const loadCreditCards = async () => {
-        try {
-            const res = await financialDataApi.creditCards.getAll();
-            setCreditCardItems(res.data || []);
-            setLastUpdated(new Date().toISOString());
-        } catch (e) { console.error('Error loading credit cards:', e); }
-    };
-
-    // Individually memoized categories for "super fast" performance
+    // Individually memoized categories
     const goldData = React.useMemo(() => {
         const items = goldItems.map((item: any) => ({
             id: item.id,
@@ -173,31 +136,24 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             symbol: item.symbol,
             name: item.name,
             exchange: item.exchange,
-            market: item.exchange, // Backward compatibility
-            stockName: item.name, // Backward compatibility
+            market: item.exchange,
+            stockName: item.name,
             quantity: parseFloat(item.quantity),
-            units: parseFloat(item.quantity), // Backward compatibility
+            units: parseFloat(item.quantity),
             avgPrice: parseFloat(item.avgPrice),
             currentPrice: parseFloat(item.currentPrice),
             currency: item.currency || 'AED',
-            unitPrice: parseFloat(item.avgPrice), // Backward compatibility (Cost Basis)
+            unitPrice: parseFloat(item.avgPrice),
             totalValue: parseFloat(item.quantity) * parseFloat(item.currentPrice),
             transactions: item.transactions || [],
             purchaseDate: item.createdAt
         }));
         const total = items.reduce((sum, item) => {
-            const convertedValue = convert(item.totalValue, item.currency);
-            // We want totalValue in AED for internal summation consistency if needed,
-            // but the NetWorth total logic uses raw AED.
-            // Wait, NetWorth total logic uses raw sum and THEN converts.
-            // So we MUST normalize everything to AED.
-
-            // Re-calculating totalValue as raw AED
             const rawAEDValue = convertRaw(item.totalValue, item.currency, 'AED');
             return sum + (rawAEDValue || 0);
         }, 0);
         return { items, totalValue: total };
-    }, [stockItems, convert]);
+    }, [stockItems, convertRaw]);
 
     const propertyData = React.useMemo(() => {
         const items = propertyItems.map((item: any) => ({
@@ -272,7 +228,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             policyNumber: item.policyNumber,
             premiumAmount: parseFloat(item.premiumAmount),
             benefitAmount: parseFloat(item.benefitAmount),
-            totalValue: parseFloat(item.benefitAmount), // For net worth inclusion (optional)
+            totalValue: parseFloat(item.benefitAmount),
             expiryDate: item.expiryDate
         }));
         const total = items.reduce((sum, item) => sum + (item.totalValue || 0), 0);
@@ -309,7 +265,6 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
 
     // Final combined net worth data
     const data = React.useMemo(() => {
-        // Module visibility check
         const isVisible = (moduleId: string) => user?.moduleVisibility?.[moduleId] !== false;
 
         const effectiveGold = isVisible('gold') ? goldData : { items: [], totalValue: 0 };
@@ -348,26 +303,14 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         };
     }, [goldData, bondData, stockData, propertyData, mutualFundData, insuranceData, cashData, loanData, creditCardData, lastUpdated, user?.moduleVisibility]);
 
-    const loadData = async () => {
+    const loadAllData = useCallback(async () => {
+        if (!isAuthenticated || !user) {
+            setIsLoading(false);
+            return;
+        }
+
         try {
             setIsLoading(true);
-            const token = localStorage.getItem('token');
-            const savedUser = localStorage.getItem('user');
-
-            if (!token || !savedUser) {
-                setIsLoading(false);
-                return;
-            }
-
-            try {
-                const user = JSON.parse(savedUser);
-                setCurrentUserId(user.id);
-            } catch (e) {
-                setIsLoading(false);
-                return;
-            }
-
-            // Fetch everything in parallel
             await Promise.all([
                 loadGold(), loadStocks(), loadProperties(), loadBankAccounts(),
                 loadLoans(), loadBonds(), loadMutualFunds(), loadCreditCards(),
@@ -378,44 +321,9 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [isAuthenticated, user, loadGold, loadStocks, loadProperties, loadBankAccounts, loadLoans, loadBonds, loadMutualFunds, loadCreditCards, loadInsurance]);
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        const checkUserChange = () => {
-            const savedUser = localStorage.getItem('user');
-            const token = localStorage.getItem('token');
-
-            if (savedUser && token) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    if (user.id !== currentUserId) {
-                        loadData();
-                    }
-                } catch (e) { }
-            } else if (currentUserId !== null && !token) {
-                resetNetWorth();
-            }
-        };
-
-        const interval = setInterval(checkUserChange, 1000);
-        return () => clearInterval(interval);
-    }, [currentUserId]);
-
-    const updateGold = async () => await loadGold();
-    const updateBonds = async () => await loadBonds();
-    const updateStocks = async () => await loadStocks();
-    const updateProperty = async () => await loadProperties();
-    const updateMutualFunds = async () => await loadMutualFunds();
-    const updateCash = async () => await loadBankAccounts();
-    const updateLoans = async () => await loadLoans();
-    const updateCreditCards = async () => await loadCreditCards();
-    const refreshNetWorth = async () => await loadData();
-
-    const resetNetWorth = () => {
+    const resetNetWorth = useCallback(() => {
         setGoldItems([]);
         setBondItems([]);
         setStockItems([]);
@@ -425,8 +333,29 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         setWallets([]);
         setLoanItems([]);
         setCreditCardItems([]);
+        setInsuranceItems([]);
         setCurrentUserId(null);
-    };
+    }, []);
+
+    // Effect to react to user changes
+    useEffect(() => {
+        if (isAuthenticated && user?.id && user.id !== currentUserId) {
+            setCurrentUserId(user.id);
+            loadAllData();
+        } else if (!isAuthenticated && currentUserId !== null) {
+            resetNetWorth();
+        }
+    }, [isAuthenticated, user?.id, currentUserId, loadAllData, resetNetWorth]);
+
+    const updateGold = async () => loadGold();
+    const updateBonds = async () => loadBonds();
+    const updateStocks = async () => loadStocks();
+    const updateProperty = async () => loadProperties();
+    const updateMutualFunds = async () => loadMutualFunds();
+    const updateCash = async () => loadBankAccounts();
+    const updateLoans = async () => loadLoans();
+    const updateCreditCards = async () => loadCreditCards();
+    const refreshNetWorth = async () => loadAllData();
 
     return (
         <NetWorthContext.Provider value={{

@@ -1,46 +1,82 @@
 import axios from 'axios';
 
-// Dynamically determine API URL based on current hostname
-// This allows mobile devices to connect using the network IP
-const getApiUrl = () => {
-    // 1. Prioritize environment variable
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
+// --- Cache API Utility ---
+const CACHE_NAME = 'networth-api-cache-v1';
 
-    // 2. Browser-side fallback logic
+export const apiCache = {
+    async get(url: string) {
+        if (typeof window === 'undefined' || !window.caches) return null;
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const response = await cache.match(url);
+            if (response) {
+                return await response.json();
+            }
+        } catch (e) {
+            console.error('[Cache API] Get error:', e);
+        }
+        return null;
+    },
+
+    async set(url: string, data: any) {
+        if (typeof window === 'undefined' || !window.caches) return;
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const response = new Response(JSON.stringify(data), {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            await cache.put(url, response);
+        } catch (e) {
+            console.error('[Cache API] Set error:', e);
+        }
+    },
+
+    async invalidate(patterns: string[]) {
+        if (typeof window === 'undefined' || !window.caches) return;
+        try {
+            const cache = await caches.open(CACHE_NAME);
+            const keys = await cache.keys();
+            for (const request of keys) {
+                if (patterns.some(p => request.url.includes(p))) {
+                    await cache.delete(request);
+                }
+            }
+        } catch (e) {
+            console.error('[Cache API] Invalidate error:', e);
+        }
+    },
+
+    async clear() {
+        if (typeof window === 'undefined' || !window.caches) return;
+        try {
+            await caches.delete(CACHE_NAME);
+            console.log('[Cache API] Cache cleared');
+        } catch (e) {
+            console.error('[Cache API] Clear error:', e);
+        }
+    }
+};
+
+// Dynamically determine API URL based on current hostname
+const getApiUrl = () => {
+    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
     if (typeof window !== 'undefined') {
         const { hostname, port, origin } = window.location;
-
-        // If we're on localhost:3000 (frontend dev), backend is usually on :3001
         if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '3000') {
             return 'http://localhost:3001/api';
         }
-
-        // If we are on port 3000 but not localhost (e.g., staging IP:3000), 
-        // fallback to :3001 if possible, or relative /api
-        if (port === '3000') {
-            return `${origin.replace(':3000', ':3001')}/api`;
-        }
-
-        // Default: use relative path for Nginx/reverse proxy setups
-        // This handles port 80/443 and any custom paths
+        if (port === '3000') return `${origin.replace(':3000', ':3001')}/api`;
         return `${origin}/api`;
     }
-
-    // 3. Absolute fallback for SSR
     return 'http://localhost:3001/api';
 };
 
 const API_URL = getApiUrl();
-console.log('[API Client] Initialized with Base URL:', API_URL);
 
 export const apiClient = axios.create({
     baseURL: API_URL,
-    timeout: 15000, // 15 seconds timeout to prevent indefinite hangs
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    timeout: 15000,
+    headers: { 'Content-Type': 'application/json' },
     withCredentials: true,
 });
 
@@ -53,50 +89,58 @@ apiClient.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling errors and token refresh
+// Response interceptor for handling caching and errors
 apiClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
+    async (response) => {
+        const { config } = response;
 
+        // Cache GET requests
+        if (config.method === 'get' && response.data) {
+            // Background update - allow the UI to continue
+            apiCache.set(config.url || '', response.data);
+        }
+
+        // Invalidate cache on mutations
+        if (['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
+            const url = config.url || '';
+            // Determine what to invalidate based on URL
+            if (url.includes('gold-assets')) apiCache.invalidate(['gold-assets']);
+            else if (url.includes('stock-assets')) apiCache.invalidate(['stock-assets']);
+            else if (url.includes('properties')) apiCache.invalidate(['properties']);
+            else if (url.includes('bank-accounts')) apiCache.invalidate(['bank-accounts']);
+            else if (url.includes('loans')) apiCache.invalidate(['loans']);
+            else if (url.includes('insurance')) apiCache.invalidate(['insurance']);
+            else if (url.includes('bond-assets')) apiCache.invalidate(['bond-assets']);
+            else if (url.includes('mutual-fund-assets')) apiCache.invalidate(['mutual-fund-assets']);
+            else if (url.includes('credit-cards')) apiCache.invalidate(['credit-cards']);
+            else if (url.includes('expenses')) apiCache.invalidate(['expenses']);
+            else if (url.includes('goals')) apiCache.invalidate(['goals']);
+        }
+
+        return response;
+    },
+    async (error) => {
         if (error.response?.status === 401) {
             console.warn('[API Client] Unauthorized access - redirecting to login');
 
-            // Clear all auth data
-            const savedUser = localStorage.getItem('user');
-            let userId: string | null = null;
-            try {
-                if (savedUser) {
-                    const user = JSON.parse(savedUser);
-                    userId = user.id;
-                }
-            } catch (e) { }
+            // Clear cache on unauthorized
+            apiCache.clear();
 
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('refreshToken');
             document.cookie = 'token=; path=/; max-age=0';
 
-            if (userId) {
-                localStorage.removeItem(`activeGoal_${userId}`);
-                localStorage.removeItem(`preferredCurrency_${userId}`);
-            }
-
-            // Only redirect if we are not already on the login page
             if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }
         }
-
         return Promise.reject(error);
     }
 );
-
 
 export const authApi = {
     login: (credentials: any) => apiClient.post('/auth/login', credentials),
