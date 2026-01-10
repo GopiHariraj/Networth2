@@ -11,7 +11,6 @@ import GoalProgress from '../components/dashboard/GoalProgress';
 import ExpenseGoalWidget from '../components/dashboard/ExpenseGoalWidget';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import PortfolioOverview from '../components/dashboard/PortfolioOverview';
-import CasioCalculator from '../components/dashboard/CasioCalculator';
 import {
     AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
     CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
@@ -61,7 +60,6 @@ export default function Dashboard() {
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
-    const [showCalculator, setShowCalculator] = useState(false);
 
     if (isLoading || !isAuthenticated) return null;
 
@@ -104,15 +102,7 @@ export default function Dashboard() {
                         <h1 className="text-3xl font-bold">Financial Overview</h1>
                         <p className="text-slate-500 mt-2">Track your daily expenses and net worth.</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setShowCalculator(!showCalculator)}
-                            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-colors shadow-lg flex items-center gap-2 border border-slate-700"
-                        >
-                            {showCalculator ? '✖ Close Calculator' : '🧮 Calculator'}
-                        </button>
-                        <a href="/goals" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">🎯 Goals</a>
-                    </div>
+                    <a href="/goals" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 flex items-center gap-2">🎯 Goals</a>
                 </header>
 
                 <GoalProgress
@@ -213,11 +203,6 @@ export default function Dashboard() {
                                 {!dashboardData?.recentTransactions?.length && <p className="text-sm text-slate-400">No transactions yet.</p>}
                             </div>
                         </div>
-                        {showCalculator && (
-                            <div className="animate-in fade-in slide-in-from-right duration-300">
-                                <CasioCalculator />
-                            </div>
-                        )}
                         <PortfolioOverview currency={currency} networthData={networthData} />
                     </div>
                 </div>
