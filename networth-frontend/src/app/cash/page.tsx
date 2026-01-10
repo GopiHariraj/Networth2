@@ -5,6 +5,7 @@ import { useCurrency } from '../../lib/currency-context';
 import { useNetWorth } from '../../lib/networth-context';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { financialDataApi } from '../../lib/api/financial-data';
+import { transactionsApi } from '../../lib/api/client';
 
 interface BankAccount {
     id: string;
@@ -131,6 +132,26 @@ export default function CashPage() {
         else acc.push({ name: curr.accountType, value: convertedValue });
         return acc;
     }, []), [bankAccounts, wallets, convert]);
+
+    const handleQuickDeposit = async (accountId: string, amount: number) => {
+        setIsLoading(true);
+        try {
+            await transactionsApi.create({
+                amount,
+                type: 'INCOME',
+                description: 'Quick Deposit from Cash Page',
+                source: 'MANUAL',
+                accountId
+            });
+            await refreshNetWorth();
+            alert('✅ Deposit recorded and balance updated!');
+        } catch (error) {
+            console.error(error);
+            alert('Failed to record deposit');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
@@ -263,6 +284,18 @@ export default function CashPage() {
                                             <div className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">{account.bankName}</div>
                                         </div>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => {
+                                                    const amount = prompt(`Enter ${account.accountType === 'Wallet' ? 'Cash Addition' : 'Income'} amount for ${account.accountName}:`);
+                                                    if (amount && !isNaN(parseFloat(amount))) {
+                                                        handleQuickDeposit(account.id, parseFloat(amount));
+                                                    }
+                                                }}
+                                                title="Quick Deposit"
+                                                className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg"
+                                            >
+                                                ➕
+                                            </button>
                                             <button onClick={() => handleEdit(account)} className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">✏️</button>
                                             <button onClick={() => handleDelete(account.id)} className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg">🗑️</button>
                                         </div>

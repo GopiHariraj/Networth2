@@ -17,17 +17,37 @@ export class TransactionsService {
   ) { }
 
   async create(userId: string, dto: CreateTransactionDto) {
-    return this.prisma.transaction.create({
-      data: {
-        amount: dto.amount,
-        description: dto.description,
-        source: dto.source || 'MANUAL',
-        date: dto.date ? new Date(dto.date) : new Date(),
-        merchant: dto.merchant,
-        type: dto.type || 'EXPENSE',
-        userId: userId,
-        categoryId: dto.categoryId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          amount: dto.amount,
+          description: dto.description,
+          source: dto.source || 'MANUAL',
+          date: dto.date ? new Date(dto.date) : new Date(),
+          merchant: dto.merchant,
+          type: dto.type || 'EXPENSE',
+          userId: userId,
+          categoryId: dto.categoryId,
+          accountId: dto.accountId,
+        },
+      });
+
+      if (dto.accountId) {
+        const amount = Number(dto.amount);
+        if (dto.type === 'INCOME') {
+          await tx.bankAccount.update({
+            where: { id: dto.accountId },
+            data: { balance: { increment: amount } },
+          });
+        } else if (dto.type === 'EXPENSE') {
+          await tx.bankAccount.update({
+            where: { id: dto.accountId },
+            data: { balance: { decrement: amount } },
+          });
+        }
+      }
+
+      return transaction;
     });
   }
 
@@ -46,8 +66,11 @@ export class TransactionsService {
         return this.createBondAsset(userId, parsed);
 
       case 'EXPENSE':
+      case 'INCOME':
+      case 'BANK_DEPOSIT':
+        return this.createGeneralTransaction(userId, parsed);
       default:
-        return this.createExpenseTransaction(userId, parsed);
+        return this.createGeneralTransaction(userId, parsed);
     }
   }
 
@@ -108,10 +131,13 @@ export class TransactionsService {
     };
   }
 
-  private async createExpenseTransaction(userId: string, parsed: any) {
+  private async createGeneralTransaction(userId: string, parsed: any) {
     try {
       // Find or create category
       let categoryId = null;
+      const isIncome = parsed.type === 'INCOME' || parsed.type === 'BANK_DEPOSIT';
+      const transactionType = isIncome ? 'INCOME' : 'EXPENSE';
+
       if (parsed.category) {
         const category = await this.prisma.category.findFirst({
           where: { userId, name: parsed.category },
@@ -123,7 +149,7 @@ export class TransactionsService {
             data: {
               userId,
               name: parsed.category,
-              type: 'EXPENSE',
+              type: transactionType as any,
             },
           });
           categoryId = newCat.id;
@@ -132,17 +158,17 @@ export class TransactionsService {
 
       const result = await this.create(userId, {
         amount: parsed.amount,
-        description: `${parsed.merchant || 'Expense'} - from SMS`,
+        description: `${parsed.merchant || (isIncome ? 'Income' : 'Expense')} - from AI`,
         merchant: parsed.merchant,
-        type: 'EXPENSE',
-        source: 'SMS',
-        date: new Date().toISOString(), // Keep date as it was in original
+        type: transactionType as any,
+        source: 'AI',
+        date: parsed.date || new Date().toISOString(),
         categoryId: categoryId || undefined,
       });
 
-      return { ...result, type: 'EXPENSE', merchant: parsed.merchant, category: parsed.category };
+      return { ...result, type: transactionType, merchant: parsed.merchant, category: parsed.category };
     } catch (error) {
-      console.error('Error creating expense transaction:', error);
+      console.error('Error creating general transaction:', error);
       throw error;
     }
   }

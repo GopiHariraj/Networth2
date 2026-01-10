@@ -166,11 +166,11 @@ Return ONLY the JSON object, no extra text or markdown.
             const prompt = `
 Parse this financial transaction SMS and extract details. Return ONLY valid JSON.
 
-Transaction types: GOLD, STOCK, BOND, EXPENSE, BANK_DEPOSIT
+Transaction types: GOLD, STOCK, BOND, EXPENSE, INCOME, BANK_DEPOSIT
 
 Return format:
 {
-  "type": "GOLD" | "STOCK" | "BOND" | "EXPENSE" | "BANK_DEPOSIT",
+  "type": "GOLD" | "STOCK" | "BOND" | "EXPENSE" | "INCOME" | "BANK_DEPOSIT",
   "amount": number,
   "currency": "AED" | "USD",
   "date": "YYYY-MM-DD",
@@ -191,7 +191,7 @@ Return format:
   "interestRate": number,
   "maturityDate": "YYYY-MM-DD",
   
-  // For EXPENSE:
+  // For EXPENSE/INCOME:
   "merchant": "string",
   "category": "string",
   
@@ -281,6 +281,10 @@ Return ONLY the JSON object.
             type = 'STOCK';
         } else if (lowerText.includes('bond')) {
             type = 'BOND';
+        } else if (lowerText.includes('salary') || lowerText.includes('credited') || lowerText.includes('income') || lowerText.includes('received')) {
+            type = 'INCOME';
+        } else if (lowerText.includes('deposit')) {
+            type = 'BANK_DEPOSIT';
         }
 
         // Extract amount

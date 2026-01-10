@@ -26,6 +26,10 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   type?: 'INCOME' | 'EXPENSE';
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
 }
 
 export class ParseSmsDto {
