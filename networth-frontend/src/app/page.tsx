@@ -61,20 +61,8 @@ export default function Dashboard() {
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
 
-    if (isLoading || !isAuthenticated) return null;
-
-    const convertedNetWorth = convert(networthData.netWorth || 0, 'AED');
-
-    const netWorthTrendLine = [
-        { month: 'Jul', netWorth: convertedNetWorth * 0.85 },
-        { month: 'Aug', netWorth: convertedNetWorth * 0.88 },
-        { month: 'Sep', netWorth: convertedNetWorth * 0.91 },
-        { month: 'Oct', netWorth: convertedNetWorth * 0.94 },
-        { month: 'Nov', netWorth: convertedNetWorth * 0.97 },
-        { month: 'Dec', netWorth: convertedNetWorth },
-    ];
-
-    const fetchDashboard = async () => {
+    const fetchDashboard = React.useCallback(async () => {
+        if (!isAuthenticated) return;
         try {
             const params: any = { period: filterPeriod };
             if (filterPeriod === 'Custom' && customStartDate && customEndDate) {
@@ -92,17 +80,28 @@ export default function Dashboard() {
             // 2. Fetch fresh data
             const res = await transactionsApi.getDashboard(params);
             setDashboardData(res.data);
-
-            // Cache utility in apiClient interceptor will handle the 'set' for us,
-            // but we need to make sure the key matches.
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [filterPeriod, customStartDate, customEndDate, isAuthenticated]);
 
     useEffect(() => {
         fetchDashboard();
-    }, [filterPeriod, customStartDate, customEndDate]);
+    }, [fetchDashboard]);
+
+    if (isLoading || !isAuthenticated) return null;
+
+    const convertedNetWorth = convert(networthData.netWorth || 0, 'AED');
+
+    const netWorthTrendLine = [
+        { month: 'Jul', netWorth: convertedNetWorth * 0.85 },
+        { month: 'Aug', netWorth: convertedNetWorth * 0.88 },
+        { month: 'Sep', netWorth: convertedNetWorth * 0.91 },
+        { month: 'Oct', netWorth: convertedNetWorth * 0.94 },
+        { month: 'Nov', netWorth: convertedNetWorth * 0.97 },
+        { month: 'Dec', netWorth: convertedNetWorth },
+    ];
+
 
     const filterOptions = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual', 'Custom'];
 
