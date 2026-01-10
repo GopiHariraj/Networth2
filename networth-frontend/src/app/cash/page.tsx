@@ -28,6 +28,19 @@ export default function CashPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('Overview');
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [showIncomeModal, setShowIncomeModal] = useState(false);
+    const [selectedAccountForIncome, setSelectedAccountForIncome] = useState<BankAccount | null>(null);
+
+    const [incomeForm, setIncomeForm] = useState({
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        category: 'Salary',
+        notes: '',
+        merchant: 'Salary'
+    });
+
+    const incomeCategories = ['Salary', 'Refund', 'Interest', 'Transfer-in', 'Gift', 'Other'];
 
     const [formData, setFormData] = useState({
         accountName: '',
@@ -46,6 +59,21 @@ export default function CashPage() {
             setWallets(data.assets.cash.wallets as BankAccount[]);
         }
     }, [data.assets.cash.bankAccounts, data.assets.cash.wallets]);
+
+    const fetchTransactions = async (accountId?: string) => {
+        try {
+            const res = await transactionsApi.getAll(accountId);
+            setTransactions(res.data);
+        } catch (error) {
+            console.error('Failed to fetch transactions', error);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'Transactions') {
+            fetchTransactions();
+        }
+    }, [activeTab]);
 
     const getTotalBank = () => bankAccounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
     const getTotalWallet = () => wallets.reduce((sum, w) => sum + (Number(w.balance) || 0), 0);
@@ -133,21 +161,35 @@ export default function CashPage() {
         return acc;
     }, []), [bankAccounts, wallets, convert]);
 
-    const handleQuickDeposit = async (accountId: string, amount: number) => {
+    const handleIncomeSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedAccountForIncome || !incomeForm.amount) return;
+
         setIsLoading(true);
         try {
             await transactionsApi.create({
-                amount,
+                amount: parseFloat(incomeForm.amount),
                 type: 'INCOME',
-                description: 'Quick Deposit from Cash Page',
+                description: incomeForm.notes || `${incomeForm.category} - ${selectedAccountForIncome.accountName}`,
+                merchant: incomeForm.merchant,
                 source: 'MANUAL',
-                accountId
+                accountId: selectedAccountForIncome.id,
+                date: incomeForm.date
             });
             await refreshNetWorth();
-            alert('✅ Deposit recorded and balance updated!');
+            setShowIncomeModal(false);
+            setIncomeForm({
+                amount: '',
+                date: new Date().toISOString().split('T')[0],
+                category: 'Salary',
+                notes: '',
+                merchant: 'Salary'
+            });
+            alert('✅ Income recorded and balance updated!');
+            if (activeTab === 'Transactions') fetchTransactions();
         } catch (error) {
             console.error(error);
-            alert('Failed to record deposit');
+            alert('Failed to record income');
         } finally {
             setIsLoading(false);
         }
@@ -167,7 +209,7 @@ export default function CashPage() {
                     </div>
 
                     <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        {['Overview', 'Bank Accounts', 'Wallets', 'Manage Account'].map(tab => (
+                        {['Overview', 'Bank Accounts', 'Wallets', 'Transactions', 'Manage Account'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -286,12 +328,10 @@ export default function CashPage() {
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => {
-                                                    const amount = prompt(`Enter ${account.accountType === 'Wallet' ? 'Cash Addition' : 'Income'} amount for ${account.accountName}:`);
-                                                    if (amount && !isNaN(parseFloat(amount))) {
-                                                        handleQuickDeposit(account.id, parseFloat(amount));
-                                                    }
+                                                    setSelectedAccountForIncome(account);
+                                                    setShowIncomeModal(true);
                                                 }}
-                                                title="Quick Deposit"
+                                                title="Record Income"
                                                 className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg"
                                             >
                                                 ➕
@@ -313,6 +353,83 @@ export default function CashPage() {
                                 </div>
                             ))
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'Transactions' && (
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                                <span className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">📝</span>
+                                Transaction Records
+                            </h3>
+                            <div className="flex gap-2">
+                                <select
+                                    className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm font-bold"
+                                    onChange={(e) => fetchTransactions(e.target.value)}
+                                >
+                                    <option value="">All Accounts</option>
+                                    <optgroup label="Bank Accounts" className="font-bold text-slate-400">
+                                        {bankAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.bankName} - {acc.accountName}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Wallets" className="font-bold text-slate-400">
+                                        {wallets.map(w => (
+                                            <option key={w.id} value={w.id}>{w.accountName}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="text-left border-b border-slate-100 dark:border-slate-700">
+                                        <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4">Date</th>
+                                        <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4">Source / Merchant</th>
+                                        <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4">Category</th>
+                                        <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {transactions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="py-20 text-center text-slate-400">
+                                                No transactions found for this selection.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        transactions.map((tr: any) => (
+                                            <tr key={tr.id} className="border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-all group">
+                                                <td className="py-4 px-4">
+                                                    <div className="text-sm font-bold text-slate-900 dark:text-white">
+                                                        {new Date(tr.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <div className="text-sm font-bold text-slate-900 dark:text-white">{tr.merchant || tr.description || 'General'}</div>
+                                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">
+                                                        {tr.source || 'MANUAL'}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${tr.type === 'INCOME' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50'}`}>
+                                                        {tr.category?.name || 'General'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className={`text-sm font-black font-mono ${tr.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
+                                                        {tr.type === 'INCOME' ? '+' : ''}{currency.symbol}{convert(tr.amount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
@@ -406,6 +523,83 @@ export default function CashPage() {
                                         {isLoading ? 'Processing...' : (editingId ? '💾 Save Changes' : '➕ Confirm Registration')}
                                     </button>
                                 </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+                {/* Income Modal */}
+                {showIncomeModal && selectedAccountForIncome && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-2xl border border-white/20 w-full max-w-lg animate-in zoom-in duration-300">
+                            <div className="flex justify-between items-center mb-8">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                                    <span className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl">💵</span>
+                                    Record Income
+                                </h3>
+                                <button onClick={() => setShowIncomeModal(false)} className="text-slate-400 hover:text-slate-600 p-2">✕</button>
+                            </div>
+
+                            <form onSubmit={handleIncomeSubmit} className="space-y-6">
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800 mb-6">
+                                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Target Account</div>
+                                    <div className="text-lg font-black text-slate-900 dark:text-white uppercase">{selectedAccountForIncome.accountName}</div>
+                                    <div className="text-[10px] text-slate-400 mt-1 uppercase">{selectedAccountForIncome.bankName}</div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Amount ({currency.code})</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            value={incomeForm.amount}
+                                            onChange={(e) => setIncomeForm({ ...incomeForm, amount: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-mono text-2xl font-black focus:ring-2 focus:ring-emerald-500"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Date</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={incomeForm.date}
+                                            onChange={(e) => setIncomeForm({ ...incomeForm, date: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Income Type</label>
+                                        <select
+                                            value={incomeForm.category}
+                                            onChange={(e) => setIncomeForm({ ...incomeForm, category: e.target.value, merchant: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                                        >
+                                            {incomeCategories.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Notes</label>
+                                        <textarea
+                                            value={incomeForm.notes}
+                                            onChange={(e) => setIncomeForm({ ...incomeForm, notes: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm resize-none"
+                                            rows={2}
+                                            placeholder="Salary for January, dividend, etc..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full py-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black rounded-2xl shadow-2xl shadow-emerald-500/20 transition-all transform hover:scale-[1.01] disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Processing...' : '💰 Record Income'}
+                                </button>
                             </form>
                         </div>
                     </div>

@@ -181,6 +181,14 @@ export class TransactionsService {
     });
   }
 
+  async findByAccount(userId: string, accountId: string) {
+    return this.prisma.transaction.findMany({
+      where: { userId, accountId },
+      include: { category: true },
+      orderBy: { date: 'desc' },
+    });
+  }
+
   async getDashboardData(userId: string, filters: { period?: string; startDate?: string; endDate?: string }) {
     const { period = 'Monthly', startDate, endDate } = filters;
     let fromDate = new Date();

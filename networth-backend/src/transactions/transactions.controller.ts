@@ -35,7 +35,10 @@ export class TransactionsController {
   }
 
   @Get()
-  findAll(@Request() req: any) {
+  findAll(@Request() req: any, @Query('accountId') accountId?: string) {
+    if (accountId) {
+      return this.transactionsService.findByAccount(req.user.id, accountId);
+    }
     return this.transactionsService.findAll(req.user.id);
   }
 

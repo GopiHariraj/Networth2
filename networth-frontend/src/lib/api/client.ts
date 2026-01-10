@@ -155,7 +155,7 @@ export const transactionsApi = {
     create: (data: any) => apiClient.post('/transactions', data),
     parseSMS: (text: string) => apiClient.post('/transactions/sms', { text }),
     analyzeReceipt: (image: string) => apiClient.post('/transactions/receipt', { image }),
-    findAll: () => apiClient.get('/transactions'),
+    getAll: (accountId?: string) => apiClient.get('/transactions', { params: { accountId } }),
     getDashboard: (params?: any) => apiClient.get('/transactions/dashboard', { params }),
 };
 
