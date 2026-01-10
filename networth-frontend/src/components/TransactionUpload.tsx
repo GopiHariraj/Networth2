@@ -9,7 +9,7 @@ import { financialDataApi } from '../lib/api/financial-data';
 
 export default function TransactionUpload({ onTransactionAdded }: { onTransactionAdded: () => void }) {
     const { currency, convert } = useCurrency();
-    const { data } = useNetWorth();
+    const { data, refreshNetWorth } = useNetWorth();
     const [activeTab, setActiveTab] = useState<'sms' | 'receipt' | 'manual'>('sms');
     const [smsText, setSmsText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
             const res = await transactionsApi.create(payload);
             setResult(res.data);
             onTransactionAdded(); // Refresh dashboard data
-            await data.refreshNetWorth(); // Refresh Cash page balances
+            await refreshNetWorth(); // Refresh Cash page balances
             setManualForm({
                 amount: '',
                 description: '',
