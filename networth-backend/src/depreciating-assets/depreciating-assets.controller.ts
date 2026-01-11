@@ -8,27 +8,27 @@ export class DepreciatingAssetsController {
     constructor(private readonly depreciatingAssetsService: DepreciatingAssetsService) { }
 
     @Post()
-    create(@Request() req, @Body() createDepreciatingAssetDto: any) {
+    create(@Request() req: any, @Body() createDepreciatingAssetDto: any) {
         return this.depreciatingAssetsService.create(req.user.id, createDepreciatingAssetDto);
     }
 
     @Get()
-    findAll(@Request() req) {
+    findAll(@Request() req: any) {
         return this.depreciatingAssetsService.findAll(req.user.id);
     }
 
     @Get(':id')
-    findOne(@Request() req, @Param('id') id: string) {
+    findOne(@Request() req: any, @Param('id') id: string) {
         return this.depreciatingAssetsService.findOne(id, req.user.id);
     }
 
     @Patch(':id')
-    update(@Request() req, @Param('id') id: string, @Body() updateDepreciatingAssetDto: any) {
+    update(@Request() req: any, @Param('id') id: string, @Body() updateDepreciatingAssetDto: any) {
         return this.depreciatingAssetsService.update(id, req.user.id, updateDepreciatingAssetDto);
     }
 
     @Delete(':id')
-    remove(@Request() req, @Param('id') id: string) {
+    remove(@Request() req: any, @Param('id') id: string) {
         return this.depreciatingAssetsService.remove(id, req.user.id);
     }
 }
