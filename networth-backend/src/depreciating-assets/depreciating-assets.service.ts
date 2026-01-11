@@ -7,13 +7,36 @@ export class DepreciatingAssetsService {
     constructor(private prisma: PrismaService) { }
 
     async create(userId: string, data: any) {
-        return this.prisma.depreciatingAsset.create({
-            data: {
-                ...data,
+        try {
+            // Set defaults for new fields if they're missing
+            const createData: any = {
                 userId,
+                name: data.name,
+                type: data.type,
+                purchasePrice: data.purchasePrice,
                 purchaseDate: new Date(data.purchaseDate),
-            },
-        });
+                depreciationMethod: data.depreciationMethod,
+                rate: data.rate || null,
+                usefulLife: data.usefulLife || null,
+                isDepreciationEnabled: data.isDepreciationEnabled ?? true,
+                notes: data.notes || null,
+            };
+
+            // Only add new fields if they exist in the data
+            if (data.purchaseCurrency) {
+                createData.purchaseCurrency = data.purchaseCurrency;
+            }
+            if (data.salvageValue) {
+                createData.salvageValue = data.salvageValue;
+            }
+
+            return this.prisma.depreciatingAsset.create({
+                data: createData,
+            });
+        } catch (error) {
+            console.error('Error creating depreciating asset:', error);
+            throw error;
+        }
     }
 
     async findAll(userId: string) {
