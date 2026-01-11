@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -116,10 +116,16 @@ export class DepreciatingAssetsService {
         if (data.purchaseCurrency !== undefined) updateData.purchaseCurrency = data.purchaseCurrency;
         if (data.salvageValue !== undefined) updateData.salvageValue = data.salvageValue || null;
 
-        return this.prisma.depreciatingAsset.update({
-            where: { id, userId },
-            data: updateData,
-        });
+        try {
+            return await this.prisma.depreciatingAsset.update({
+                where: { id, userId },
+                data: updateData,
+            });
+        } catch (error: any) {
+            console.error('Error updating asset:', error);
+            // Return existing error message to frontend
+            throw new InternalServerErrorException(`Update failed: ${error.message}`);
+        }
     }
 
     async remove(id: string, userId: string) {
