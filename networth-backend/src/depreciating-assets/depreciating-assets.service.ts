@@ -99,12 +99,26 @@ export class DepreciatingAssetsService {
     }
 
     async update(id: string, userId: string, data: any) {
-        if (data.purchaseDate) {
-            data.purchaseDate = new Date(data.purchaseDate);
-        }
+        const updateData: any = {};
+
+        // Explicitly map fields to prevent "Unknown arg" errors or type mismatches
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.type !== undefined) updateData.type = data.type;
+        if (data.purchasePrice !== undefined) updateData.purchasePrice = data.purchasePrice;
+        if (data.purchaseDate !== undefined) updateData.purchaseDate = new Date(data.purchaseDate);
+        if (data.depreciationMethod !== undefined) updateData.depreciationMethod = data.depreciationMethod;
+        if (data.rate !== undefined) updateData.rate = data.rate || null;
+        if (data.usefulLife !== undefined) updateData.usefulLife = data.usefulLife || null;
+        if (data.isDepreciationEnabled !== undefined) updateData.isDepreciationEnabled = data.isDepreciationEnabled;
+        if (data.notes !== undefined) updateData.notes = data.notes;
+
+        // New fields
+        if (data.purchaseCurrency !== undefined) updateData.purchaseCurrency = data.purchaseCurrency;
+        if (data.salvageValue !== undefined) updateData.salvageValue = data.salvageValue || null;
+
         return this.prisma.depreciatingAsset.update({
             where: { id, userId },
-            data,
+            data: updateData,
         });
     }
 
