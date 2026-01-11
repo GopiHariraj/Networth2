@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useCurrency } from '../../lib/currency-context';
 import { useNetWorth } from '../../lib/networth-context';
+import { aiApi } from '../../lib/api/client';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface Message {
@@ -144,33 +145,33 @@ export default function AIAnalyticsPage() {
         setMessages(prev => [...prev, userMessage]);
         setInputMessage('');
 
-        // Simulate AI response
-        setTimeout(() => {
+        try {
+            // Check if it's a preset question to generate a chart locally
             const presetQuestion = PRESET_QUESTIONS.find(q => q.text === messageText);
             const chart = presetQuestion ? generateRealChart(presetQuestion.id) : undefined;
 
-            let aiResponse = '';
-            if (chart) {
-                aiResponse = `I've generated a ${chart.type} chart showing ${chart.title.toLowerCase()}. `;
-                if (chart.type === 'pie') {
-                    aiResponse += `This breakdown helps you understand the distribution of your ${chart.title.toLowerCase()}.`;
-                } else {
-                    aiResponse += `The trend shows meaningful insights about your financial growth.`;
-                }
-            } else {
-                aiResponse = `Based on your financial data, I can provide insights. Your net worth has shown a positive trend of ${insights.netWorthTrend} recently. ${insights.biggestAssetChange} shows the strongest growth. For detailed visualizations, try using the preset questions below.`;
-            }
+            // Get AI response
+            const response = await aiApi.chat(messageText, networthData);
 
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: aiResponse,
-                chart: chart
+                content: response.data.text || "I couldn't generate a response. Please try again.",
+                chart: chart // Attach local chart if available
             };
 
             setMessages(prev => [...prev, assistantMessage]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: "I'm having trouble connecting right now. Please check your connection and try again."
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     const handlePresetQuestion = (question: string) => {

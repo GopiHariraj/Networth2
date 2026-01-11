@@ -164,4 +164,8 @@ export const transactionsApi = {
     delete: (id: string) => apiClient.delete(`/transactions/${id}`),
 };
 
+export const aiApi = {
+    chat: (message: string, context: any) => apiClient.post('/ai/chat', { message, context }),
+};
+
 export default apiClient;
