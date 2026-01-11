@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { financialDataApi } from './api/financial-data';
-import { apiCache } from './api/client';
+import { apiCache, depreciatingAssetsApi } from './api/client';
 import { useCurrency } from './currency-context';
 import { useAuth } from './auth-context';
 
@@ -19,6 +19,7 @@ interface NetWorthData {
         property: { items: AssetItem[]; totalValue: number };
         mutualFunds: { items: AssetItem[]; totalValue: number };
         insurance: { items: AssetItem[]; totalValue: number };
+        depreciatingAssets: { items: AssetItem[]; totalValue: number };
         cash: {
             bankAccounts: AssetItem[];
             wallets: AssetItem[];
@@ -44,6 +45,7 @@ interface NetWorthContextType {
     updateStocks: () => Promise<void>;
     updateProperty: () => Promise<void>;
     updateMutualFunds: () => Promise<void>;
+    updateDepreciatingAssets: () => Promise<void>;
     updateCash: () => Promise<void>;
     updateLoans: () => Promise<void>;
     updateCreditCards: () => Promise<void>;
@@ -70,6 +72,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     const [wallets, setWallets] = useState<AssetItem[]>([]);
     const [loanItems, setLoanItems] = useState<AssetItem[]>([]);
     const [insuranceItems, setInsuranceItems] = useState<AssetItem[]>([]);
+    const [depreciatingAssetItems, setDepreciatingAssetItems] = useState<AssetItem[]>([]);
     const [creditCardItems, setCreditCardItems] = useState<AssetItem[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string>(new Date().toISOString());
 
@@ -106,6 +109,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     }, '/bank-accounts'), [loadCategory]);
     const loadLoans = useCallback(() => loadCategory(financialDataApi.loans.getAll, setLoanItems, '/loans'), [loadCategory]);
     const loadInsurance = useCallback(() => loadCategory((financialDataApi as any).insurance.getAll, setInsuranceItems, '/insurance'), [loadCategory]);
+    const loadDepreciatingAssets = useCallback(() => loadCategory(depreciatingAssetsApi.getAll, setDepreciatingAssetItems, '/depreciating-assets'), [loadCategory]);
     const loadBonds = useCallback(() => loadCategory(financialDataApi.bondAssets.getAll, setBondItems, '/bond-assets'), [loadCategory]);
     const loadMutualFunds = useCallback(() => loadCategory(financialDataApi.mutualFunds.getAll, setMutualFundItems, '/mutual-fund-assets'), [loadCategory]);
     const loadCreditCards = useCallback(() => loadCategory(financialDataApi.creditCards.getAll, setCreditCardItems, '/credit-cards'), [loadCategory]);
@@ -235,6 +239,21 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         return { items, totalValue: total };
     }, [insuranceItems]);
 
+    const depreciatingAssetData = React.useMemo(() => {
+        const items = depreciatingAssetItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            purchasePrice: parseFloat(item.purchasePrice),
+            currentValue: parseFloat(item.currentValue),
+            depreciationRate: parseFloat(item.depreciationRate),
+            purchaseDate: item.purchaseDate,
+            notes: item.notes
+        }));
+        const total = items.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        return { items, totalValue: total };
+    }, [depreciatingAssetItems]);
+
     const creditCardData = React.useMemo(() => {
         const items = creditCardItems.map((item: any) => ({
             id: item.id,
@@ -273,11 +292,13 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         const effectiveProperty = isVisible('property') ? propertyData : { items: [], totalValue: 0 };
         const effectiveMutualFunds = isVisible('mutualFunds') ? mutualFundData : { items: [], totalValue: 0 };
         const effectiveInsurance = isVisible('insurance') ? insuranceData : { items: [], totalValue: 0 };
+        const effectiveDepreciatingAssets = isVisible('depreciatingAssets') ? depreciatingAssetData : { items: [], totalValue: 0 };
         const effectiveLoans = isVisible('loans') ? loanData : { items: [], totalValue: 0 };
 
         const totalAssets = effectiveGold.totalValue + effectiveBonds.totalValue +
             effectiveStocks.totalValue + effectiveProperty.totalValue +
-            effectiveMutualFunds.totalValue + cashData.totalCash;
+            effectiveMutualFunds.totalValue + effectiveInsurance.totalValue +
+            effectiveDepreciatingAssets.totalValue + cashData.totalCash;
 
         const totalLiabilities = effectiveLoans.totalValue + creditCardData.totalValue;
         const netWorth = totalAssets - totalLiabilities;
@@ -290,6 +311,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
                 property: effectiveProperty,
                 mutualFunds: effectiveMutualFunds,
                 insurance: effectiveInsurance,
+                depreciatingAssets: effectiveDepreciatingAssets,
                 cash: cashData
             },
             liabilities: {
@@ -301,7 +323,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             netWorth,
             lastUpdated
         };
-    }, [goldData, bondData, stockData, propertyData, mutualFundData, insuranceData, cashData, loanData, creditCardData, lastUpdated, user?.moduleVisibility]);
+    }, [goldData, bondData, stockData, propertyData, mutualFundData, insuranceData, depreciatingAssetData, cashData, loanData, creditCardData, lastUpdated, user?.moduleVisibility]);
 
     const loadAllData = useCallback(async () => {
         if (!isAuthenticated || !user) {
@@ -314,7 +336,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             await Promise.all([
                 loadGold(), loadStocks(), loadProperties(), loadBankAccounts(),
                 loadLoans(), loadBonds(), loadMutualFunds(), loadCreditCards(),
-                loadInsurance()
+                loadInsurance(), loadDepreciatingAssets()
             ]);
         } catch (error) {
             console.error('Error loading financial data:', error);
@@ -334,6 +356,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         setLoanItems([]);
         setCreditCardItems([]);
         setInsuranceItems([]);
+        setDepreciatingAssetItems([]);
         setCurrentUserId(null);
     }, []);
 
@@ -352,6 +375,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
     const updateStocks = async () => loadStocks();
     const updateProperty = async () => loadProperties();
     const updateMutualFunds = async () => loadMutualFunds();
+    const updateDepreciatingAssets = async () => loadDepreciatingAssets();
     const updateCash = async () => loadBankAccounts();
     const updateLoans = async () => loadLoans();
     const updateCreditCards = async () => loadCreditCards();
@@ -365,6 +389,7 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             updateStocks,
             updateProperty,
             updateMutualFunds,
+            updateDepreciatingAssets,
             updateCash,
             updateLoans,
             updateCreditCards,

@@ -168,4 +168,11 @@ export const aiApi = {
     chat: (message: string, context: any) => apiClient.post('/ai/chat', { message, context }),
 };
 
+export const depreciatingAssetsApi = {
+    getAll: () => apiClient.get('/depreciating-assets'),
+    create: (data: any) => apiClient.post('/depreciating-assets', data),
+    update: (id: string, data: any) => apiClient.patch(`/depreciating-assets/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/depreciating-assets/${id}`),
+};
+
 export default apiClient;
