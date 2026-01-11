@@ -358,7 +358,8 @@ export default function SettingsPage() {
                                 { id: 'property', name: 'Real Estate / Property', icon: '🏠' },
                                 { id: 'mutualFunds', name: 'Mutual Funds', icon: '📊' },
                                 { id: 'loans', name: 'Loans & Debt', icon: '💳' },
-                                { id: 'insurance', name: 'Insurance Module', icon: '🛡️' }
+                                { id: 'insurance', name: 'Insurance Module', icon: '🛡️' },
+                                { id: 'depreciatingAssets', name: 'Depreciating Assets', icon: '📉' }
                             ].map((module) => {
                                 const isEnabled = user?.moduleVisibility?.[module.id] !== false;
 
@@ -373,7 +374,7 @@ export default function SettingsPage() {
                                         <button
                                             onClick={async () => {
                                                 const currentVisibility = user?.moduleVisibility || {
-                                                    gold: true, stocks: true, bonds: true, property: true, mutualFunds: true, loans: true, insurance: true
+                                                    gold: true, stocks: true, bonds: true, property: true, mutualFunds: true, loans: true, insurance: true, depreciatingAssets: true
                                                 };
                                                 const newVisibility = {
                                                     ...currentVisibility,
