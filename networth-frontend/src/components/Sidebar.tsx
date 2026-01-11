@@ -15,6 +15,7 @@ const MENU_ITEMS = [
     { name: 'Mutual Funds', icon: '📊', path: '/mutual-funds' },
     { name: 'Loans', icon: '💳', path: '/loans' },
     { name: 'Insurance', icon: '🛡️', path: '/insurance' },
+    { name: 'Depreciating Assets', icon: '📉', path: '/depreciating-assets' },
     { name: 'AI Analysis', icon: '✨', path: '/ai-analysis' },
     { name: 'Expenses', path: '/expenses', icon: '💵' },
 ];
@@ -41,7 +42,8 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
         'Property': 'property',
         'Mutual Funds': 'mutualFunds',
         'Loans': 'loans',
-        'Insurance': 'insurance'
+        'Insurance': 'insurance',
+        'Depreciating Assets': 'depreciatingAssets'
     };
 
     const filteredItems = MENU_ITEMS.filter(item => {
