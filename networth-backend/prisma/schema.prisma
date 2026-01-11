@@ -244,7 +244,7 @@ model DepreciatingAsset {
   name                String   // "Tesla Model 3", "iPhone 15"
   type                String   // Car, Electronics, Appliance, Other
   purchasePrice       Decimal  @db.Decimal(15, 2)
-  purchaseCurrency    String   @default("AED") // Currency code (AED, USD, INR, etc.)
+  purchaseCurrency    String?  @default("AED") // Currency code (AED, USD, INR, etc.)
   purchaseDate        DateTime
   depreciationMethod  String   // "STRAIGHT_LINE", "PERCENTAGE"
   rate                Decimal? @db.Decimal(5, 2) // Annual depreciation rate in %
