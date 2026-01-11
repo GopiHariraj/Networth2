@@ -244,14 +244,14 @@ model DepreciatingAsset {
   name                String   // "Tesla Model 3", "iPhone 15"
   type                String   // Car, Electronics, Appliance, Other
   purchasePrice       Decimal  @db.Decimal(15, 2)
-  // purchaseCurrency    String?  @default("AED") // TEMPORARILY DISABLED: Migration failed
+  purchaseCurrency    String?  @default("AED")
   purchaseDate        DateTime
   depreciationMethod  String   // "STRAIGHT_LINE", "PERCENTAGE"
   rate                Decimal? @db.Decimal(5, 2) // Annual depreciation rate in %
   usefulLife          Int?     // Useful life in years
   isDepreciationEnabled Boolean @default(true)
   currentValue        Decimal? @db.Decimal(15, 2)
-  // salvageValue        Decimal? @db.Decimal(15, 2) // TEMPORARILY DISABLED: Migration failed
+  salvageValue        Decimal? @db.Decimal(15, 2)
   linkedLoanId        String?
   notes               String?  @db.Text
   createdAt           DateTime @default(now())

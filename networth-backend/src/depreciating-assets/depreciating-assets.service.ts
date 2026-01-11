@@ -22,9 +22,8 @@ export class DepreciatingAssetsService {
                 notes: data.notes || null,
             };
 
-            // TEMPORARILY DISABLED: Database migration missing
-            // if (data.purchaseCurrency) { createData.purchaseCurrency = data.purchaseCurrency; }
-            // if (data.salvageValue) { createData.salvageValue = data.salvageValue; }
+            if (data.purchaseCurrency) { createData.purchaseCurrency = data.purchaseCurrency; }
+            if (data.salvageValue) { createData.salvageValue = data.salvageValue; }
 
             return this.prisma.depreciatingAsset.create({
                 data: createData,
@@ -83,8 +82,8 @@ export class DepreciatingAssetsService {
         }
 
         // Ensure value doesn't go below salvage value (if set) or 0
-        // const salvageValue = asset.salvageValue ? Number(asset.salvageValue) : 0;
-        return Math.max(0, Number(currentValue.toFixed(2)));
+        const salvageValue = asset.salvageValue ? Number(asset.salvageValue) : 0;
+        return Math.max(salvageValue, Number(currentValue.toFixed(2)));
     }
 
     async findOne(id: string, userId: string) {
