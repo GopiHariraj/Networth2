@@ -33,9 +33,18 @@ export class DepreciatingAssetsService {
             return this.prisma.depreciatingAsset.create({
                 data: createData,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating depreciating asset:', error);
-            throw error;
+            // Log specific Prisma error details
+            if (error.code) {
+                console.error('Prisma Error Code:', error.code);
+                console.error('Prisma Error Meta:', error.meta);
+            }
+
+            // Re-throw as InternalServerErrorException but with message
+            // or better, throw BadRequestException if it's a validation thing.
+            // For now, let's throw a more descriptive error.
+            throw new Error(`Failed to create asset: ${error.message}`);
         }
     }
 
