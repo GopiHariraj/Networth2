@@ -155,9 +155,13 @@ export const transactionsApi = {
     create: (data: any) => apiClient.post('/transactions', data),
     parseSMS: (text: string) => apiClient.post('/transactions/sms', { text }),
     analyzeReceipt: (image: string) => apiClient.post('/transactions/receipt', { image }),
-    getAll: (accountId?: string) => apiClient.get('/transactions', { params: { accountId } }),
-    getDashboard: (params?: any) => apiClient.get('/transactions/dashboard', { params }),
+    getAll: (accountId?: string) => {
+        const params = accountId ? `?accountId=${accountId}` : '';
+        return apiClient.get(`/transactions${params}`);
+    },
+    getDashboard: (params: any) => apiClient.get('/transactions/dashboard', { params }),
+    update: (id: string, data: any) => apiClient.patch(`/transactions/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/transactions/${id}`),
 };
 
 export default apiClient;
-

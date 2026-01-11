@@ -3,6 +3,9 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
+  Param,
   Query,
   UseGuards,
   Request,
@@ -12,6 +15,7 @@ import {
   CreateTransactionDto,
   ParseSmsDto,
 } from './dto/create-transaction.dto';
+import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('transactions')
@@ -54,5 +58,15 @@ export class TransactionsController {
       startDate,
       endDate,
     });
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateTransactionDto, @Request() req: any) {
+    return this.transactionsService.update(req.user.id, id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req: any) {
+    return this.transactionsService.remove(req.user.id, id);
   }
 }

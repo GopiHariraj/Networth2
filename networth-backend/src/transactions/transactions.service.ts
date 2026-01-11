@@ -424,4 +424,124 @@ export class TransactionsService {
       throw error;
     }
   }
+
+  async update(userId: string, id: string, dto: any) {
+    return this.prisma.$transaction(async (tx) => {
+      // Get existing transaction
+      const existing = await tx.transaction.findFirst({
+        where: { id, userId },
+      });
+
+      if (!existing) {
+        throw new Error('Transaction not found');
+      }
+
+      const oldAmount = Number(existing.amount);
+      const newAmount = dto.amount !== undefined ? Number(dto.amount) : oldAmount;
+      const amountDiff = newAmount - oldAmount;
+
+      // Reverse old balance impact and apply new one if amount changed
+      if (amountDiff !== 0 && existing.accountId) {
+        if (existing.type === 'INCOME') {
+          await tx.bankAccount.update({
+            where: { id: existing.accountId },
+            data: { balance: { increment: amountDiff } },
+          });
+        } else if (existing.type === 'EXPENSE') {
+          await tx.bankAccount.update({
+            where: { id: existing.accountId },
+            data: { balance: { decrement: amountDiff } },
+          });
+        }
+      }
+
+      // Update the transaction
+      const updated = await tx.transaction.update({
+        where: { id },
+        data: {
+          amount: newAmount,
+          description: dto.description ?? existing.description,
+          merchant: dto.merchant ?? existing.merchant,
+          date: dto.date ? new Date(dto.date) : existing.date,
+        },
+      });
+
+      // Update expense record if exists
+      if (existing.type === 'EXPENSE') {
+        const expenseRecord = await tx.expense.findFirst({
+          where: {
+            userId,
+            date: existing.date,
+            amount: existing.amount,
+            merchant: existing.merchant || undefined,
+          },
+        });
+
+        if (expenseRecord) {
+          await tx.expense.update({
+            where: { id: expenseRecord.id },
+            data: {
+              amount: newAmount,
+              notes: dto.description ?? expenseRecord.notes,
+              merchant: dto.merchant ?? expenseRecord.merchant,
+              date: dto.date ? new Date(dto.date) : expenseRecord.date,
+            },
+          });
+        }
+      }
+
+      return updated;
+    });
+  }
+
+  async remove(userId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // Get transaction to reverse balance impact
+      const transaction = await tx.transaction.findFirst({
+        where: { id, userId },
+      });
+
+      if (!transaction) {
+        throw new Error('Transaction not found');
+      }
+
+      const amount = Number(transaction.amount);
+
+      // Reverse balance impact
+      if (transaction.accountId) {
+        if (transaction.type === 'INCOME') {
+          // Reverse income: decrement balance
+          await tx.bankAccount.update({
+            where: { id: transaction.accountId },
+            data: { balance: { decrement: amount } },
+          });
+        } else if (transaction.type === 'EXPENSE') {
+          // Reverse expense: increment balance
+          await tx.bankAccount.update({
+            where: { id: transaction.accountId },
+            data: { balance: { increment: amount } },
+          });
+        }
+      }
+
+      // Delete associated expense record if exists
+      if (transaction.type === 'EXPENSE') {
+        await tx.expense.deleteMany({
+          where: {
+            userId,
+            date: transaction.date,
+            amount: transaction.amount,
+            merchant: transaction.merchant || undefined,
+          },
+        });
+      }
+
+      // Delete the transaction
+      await tx.transaction.delete({
+        where: { id },
+      });
+
+      return { success: true, message: 'Transaction deleted' };
+    });
+  }
 }

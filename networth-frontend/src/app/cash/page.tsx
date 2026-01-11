@@ -31,6 +31,8 @@ export default function CashPage() {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [showIncomeModal, setShowIncomeModal] = useState(false);
     const [selectedAccountForIncome, setSelectedAccountForIncome] = useState<BankAccount | null>(null);
+    const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     const [incomeForm, setIncomeForm] = useState({
         amount: '',
@@ -38,6 +40,13 @@ export default function CashPage() {
         category: 'Salary',
         notes: '',
         merchant: 'Salary'
+    });
+
+    const [editForm, setEditForm] = useState({
+        amount: '',
+        description: '',
+        merchant: '',
+        date: new Date().toISOString().split('T')[0]
     });
 
     const incomeCategories = ['Salary', 'Refund', 'Interest', 'Transfer-in', 'Gift', 'Other'];
@@ -190,6 +199,56 @@ export default function CashPage() {
         } catch (error) {
             console.error(error);
             alert('Failed to record income');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEditTransaction = (transaction: any) => {
+        setEditingTransaction(transaction);
+        setEditForm({
+            amount: transaction.amount.toString(),
+            description: transaction.description || '',
+            merchant: transaction.merchant || '',
+            date: new Date(transaction.date).toISOString().split('T')[0]
+        });
+    };
+
+    const handleUpdateTransaction = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTransaction) return;
+
+        setIsLoading(true);
+        try {
+            await transactionsApi.update(editingTransaction.id, {
+                amount: parseFloat(editForm.amount),
+                description: editForm.description,
+                merchant: editForm.merchant,
+                date: editForm.date
+            });
+            await refreshNetWorth();
+            fetchTransactions();
+            setEditingTransaction(null);
+            alert('✅ Transaction updated successfully!');
+        } catch (error) {
+            console.error(error);
+            alert('Failed to update transaction');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteTransaction = async (id: string) => {
+        setIsLoading(true);
+        try {
+            await transactionsApi.delete(id);
+            await refreshNetWorth();
+            fetchTransactions();
+            setShowDeleteConfirm(null);
+            alert('✅ Transaction deleted successfully!');
+        } catch (error) {
+            console.error(error);
+            alert('Failed to delete transaction');
         } finally {
             setIsLoading(false);
         }
@@ -391,12 +450,13 @@ export default function CashPage() {
                                         <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4">Source / Merchant</th>
                                         <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4">Category</th>
                                         <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4 text-right">Amount</th>
+                                        <th className="pb-4 font-bold text-slate-400 text-[10px] uppercase tracking-widest px-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {transactions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="py-20 text-center text-slate-400">
+                                            <td colSpan={5} className="py-20 text-center text-slate-400">
                                                 No transactions found for this selection.
                                             </td>
                                         </tr>
@@ -422,6 +482,24 @@ export default function CashPage() {
                                                 <td className="py-4 px-4 text-right">
                                                     <div className={`text-sm font-black font-mono ${tr.type === 'INCOME' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
                                                         {tr.type === 'INCOME' ? '+' : ''}{currency.symbol}{convert(tr.amount, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 text-right">
+                                                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => handleEditTransaction(tr)}
+                                                            className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                                            title="Edit transaction"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setShowDeleteConfirm(tr.id)}
+                                                            className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors"
+                                                            title="Delete transaction"
+                                                        >
+                                                            🗑️
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -601,6 +679,112 @@ export default function CashPage() {
                                     {isLoading ? 'Processing...' : '💰 Record Income'}
                                 </button>
                             </form>
+                        </div>
+                    </div>
+                )}
+                {/* Edit Transaction Modal */}
+                {editingTransaction && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-2xl border border-white/20 w-full max-w-lg animate-in zoom-in duration-300">
+                            <div className="flex justify-between items-center mb-8">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                                    <span className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">✏️</span>
+                                    Edit Transaction
+                                </h3>
+                                <button onClick={() => setEditingTransaction(null)} className="text-slate-400 hover:text-slate-600 p-2">✕</button>
+                            </div>
+
+                            <form onSubmit={handleUpdateTransaction} className="space-y-6">
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 mb-6">
+                                    <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Transaction Type</div>
+                                    <div className="text-lg font-black text-slate-900 dark:text-white uppercase">{editingTransaction.type}</div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Amount ({currency.code})</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            value={editForm.amount}
+                                            onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-mono text-2xl font-black focus:ring-2 focus:ring-blue-500"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Description</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.description}
+                                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                                            placeholder="Transaction description"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Merchant</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.merchant}
+                                            onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                                            placeholder="Merchant name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Date</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={editForm.date}
+                                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl px-6 py-4 font-bold text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black rounded-2xl shadow-2xl shadow-blue-500/20 transition-all transform hover:scale-[1.01] disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Updating...' : '💾 Save Changes'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Dialog */}
+                {showDeleteConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 shadow-2xl border border-white/20 w-full max-w-md animate-in zoom-in duration-300">
+                            <div className="text-center">
+                                <div className="mx-auto w-16 h-16 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-6">
+                                    <span className="text-3xl">⚠️</span>
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">Delete Transaction?</h3>
+                                <p className="text-slate-500 mb-8">This action cannot be undone. The transaction will be permanently deleted and the balance will be adjusted accordingly.</p>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(null)}
+                                        className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition-all"
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteTransaction(showDeleteConfirm)}
+                                        className="flex-1 py-3 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/20 transition-all disabled:opacity-50"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Deleting...' : '🗑️ Delete'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
