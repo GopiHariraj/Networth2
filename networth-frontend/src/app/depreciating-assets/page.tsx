@@ -39,6 +39,7 @@ export default function DepreciatingAssetsPage() {
         if (!formData.purchasePrice || parseFloat(formData.purchasePrice) <= 0) {
             newErrors.purchasePrice = 'Valid purchase price is required';
         }
+        if (!formData.purchaseCurrency) newErrors.purchaseCurrency = 'Currency is required';
 
 
         if (formData.isDepreciationEnabled) {
@@ -279,7 +280,7 @@ export default function DepreciatingAssetsPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="col-span-2 space-y-2">
+                                    <div className="space-y-2">
                                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Price *</label>
                                         <input
                                             required
@@ -291,6 +292,21 @@ export default function DepreciatingAssetsPage() {
                                             onChange={e => setFormData({ ...formData, purchasePrice: e.target.value })}
                                         />
                                         {errors.purchasePrice && <p className="text-xs text-red-500">{errors.purchasePrice}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Currency *</label>
+                                        <select
+                                            required
+                                            className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                            value={formData.purchaseCurrency}
+                                            onChange={e => setFormData({ ...formData, purchaseCurrency: e.target.value })}
+                                        >
+                                            <option value="AED">🇦🇪 AED</option>
+                                            <option value="USD">🇺🇸 USD</option>
+                                            <option value="EUR">🇪🇺 EUR</option>
+                                            <option value="INR">🇮🇳 INR</option>
+                                            <option value="GBP">🇬🇧 GBP</option>
+                                        </select>
                                     </div>
                                 </div>
 
