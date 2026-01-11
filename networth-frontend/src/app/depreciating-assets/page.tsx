@@ -15,25 +15,58 @@ export default function DepreciatingAssetsPage() {
         name: '',
         type: 'Electronics',
         purchasePrice: '',
+        purchaseCurrency: 'AED',
         purchaseDate: new Date().toISOString().split('T')[0],
         depreciationMethod: 'STRAIGHT_LINE',
         rate: '',
         usefulLife: '',
         isDepreciationEnabled: true,
+        salvageValue: '',
         notes: ''
     });
+    const [errors, setErrors] = useState<any>({});
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const assets = data.assets.depreciatingAssets.items || [];
     const totalValue = data.assets.depreciatingAssets.totalValue || 0;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        const newErrors: any = {};
+        if (!formData.name.trim()) newErrors.name = 'Name is required';
+        if (!formData.purchasePrice || parseFloat(formData.purchasePrice) <= 0) {
+            newErrors.purchasePrice = 'Valid purchase price is required';
+        }
+        if (!formData.purchaseCurrency) newErrors.purchaseCurrency = 'Currency is required';
+
+        if (formData.isDepreciationEnabled) {
+            if (formData.depreciationMethod === 'STRAIGHT_LINE') {
+                if (!formData.usefulLife || parseInt(formData.usefulLife) <= 0) {
+                    newErrors.usefulLife = 'Useful life (years) is required';
+                }
+            } else if (formData.depreciationMethod === 'PERCENTAGE') {
+                if (!formData.rate || parseFloat(formData.rate) <= 0) {
+                    newErrors.rate = 'Depreciation rate is required';
+                }
+            }
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
+
         try {
             const payload = {
                 ...formData,
                 purchasePrice: parseFloat(formData.purchasePrice),
                 rate: formData.rate ? parseFloat(formData.rate) : null,
                 usefulLife: formData.usefulLife ? parseInt(formData.usefulLife) : null,
+                salvageValue: formData.salvageValue ? parseFloat(formData.salvageValue) : null,
                 purchaseDate: new Date(formData.purchaseDate).toISOString()
             };
 
@@ -43,11 +76,14 @@ export default function DepreciatingAssetsPage() {
                 await depreciatingAssetsApi.create(payload);
             }
             await updateDepreciatingAssets();
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
             setIsModalOpen(false);
             resetForm();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving asset:', error);
-            alert('Failed to save asset');
+            const errorMsg = error.response?.data?.message || 'Failed to save asset. Please check all fields.';
+            alert('❌ ' + errorMsg);
         }
     };
 
@@ -63,30 +99,36 @@ export default function DepreciatingAssetsPage() {
 
     const resetForm = () => {
         setEditingAsset(null);
+        setErrors({});
         setFormData({
             name: '',
             type: 'Electronics',
             purchasePrice: '',
+            purchaseCurrency: 'AED',
             purchaseDate: new Date().toISOString().split('T')[0],
             depreciationMethod: 'STRAIGHT_LINE',
             rate: '',
             usefulLife: '',
             isDepreciationEnabled: true,
+            salvageValue: '',
             notes: ''
         });
     };
 
     const openEdit = (asset: any) => {
         setEditingAsset(asset);
+        setErrors({});
         setFormData({
             name: asset.name,
             type: asset.type,
             purchasePrice: asset.purchasePrice.toString(),
+            purchaseCurrency: asset.purchaseCurrency || 'AED',
             purchaseDate: new Date(asset.purchaseDate).toISOString().split('T')[0],
             depreciationMethod: asset.depreciationMethod || 'STRAIGHT_LINE',
             rate: asset.depreciationRate?.toString() || '',
             usefulLife: asset.usefulLife?.toString() || '',
             isDepreciationEnabled: asset.isDepreciationEnabled,
+            salvageValue: asset.salvageValue?.toString() || '',
             notes: asset.notes || ''
         });
         setIsModalOpen(true);
@@ -238,22 +280,38 @@ export default function DepreciatingAssetsPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Price</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-slate-400">$</span>
-                                            <input
-                                                required
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                className="w-full pl-8 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
-                                                value={formData.purchasePrice}
-                                                onChange={e => setFormData({ ...formData, purchasePrice: e.target.value })}
-                                            />
-                                        </div>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Price *</label>
+                                        <input
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className={`w-full p-2 rounded-lg border ${errors.purchasePrice ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'} bg-white dark:bg-slate-700`}
+                                            value={formData.purchasePrice}
+                                            onChange={e => setFormData({ ...formData, purchasePrice: e.target.value })}
+                                        />
+                                        {errors.purchasePrice && <p className="text-xs text-red-500">{errors.purchasePrice}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Date</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Currency *</label>
+                                        <select
+                                            required
+                                            className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                            value={formData.purchaseCurrency}
+                                            onChange={e => setFormData({ ...formData, purchaseCurrency: e.target.value })}
+                                        >
+                                            <option value="AED">🇦🇪 AED</option>
+                                            <option value="USD">🇺🇸 USD</option>
+                                            <option value="EUR">🇪🇺 EUR</option>
+                                            <option value="INR">🇮🇳 INR</option>
+                                            <option value="GBP">🇬🇧 GBP</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Date *</label>
                                         <input
                                             required
                                             type="date"
@@ -261,6 +319,19 @@ export default function DepreciatingAssetsPage() {
                                             value={formData.purchaseDate}
                                             onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })}
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Salvage Value (Optional)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                            value={formData.salvageValue}
+                                            onChange={e => setFormData({ ...formData, salvageValue: e.target.value })}
+                                            placeholder="Min value floor"
+                                        />
+                                        <p className="text-xs text-slate-500">Value won't drop below this</p>
                                     </div>
                                 </div>
 
@@ -310,28 +381,30 @@ export default function DepreciatingAssetsPage() {
 
                                             {formData.depreciationMethod === 'STRAIGHT_LINE' ? (
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Useful Life (Years)</label>
+                                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Useful Life (Years) *</label>
                                                     <input
                                                         type="number"
                                                         min="1"
-                                                        className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                                        className={`w-full p-2 rounded-lg border ${errors.usefulLife ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'} bg-white dark:bg-slate-700`}
                                                         value={formData.usefulLife}
                                                         onChange={e => setFormData({ ...formData, usefulLife: e.target.value })}
                                                         placeholder="e.g. 5 or 10"
                                                     />
+                                                    {errors.usefulLife && <p className="text-xs text-red-500">{errors.usefulLife}</p>}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
-                                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Annual Rate (%)</label>
+                                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Annual Rate (%) *</label>
                                                     <input
                                                         type="number"
                                                         min="0"
                                                         step="0.1"
-                                                        className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
+                                                        className={`w-full p-2 rounded-lg border ${errors.rate ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'} bg-white dark:bg-slate-700`}
                                                         value={formData.rate}
                                                         onChange={e => setFormData({ ...formData, rate: e.target.value })}
                                                         placeholder="e.g. 15 or 20"
                                                     />
+                                                    {errors.rate && <p className="text-xs text-red-500">{errors.rate}</p>}
                                                 </div>
                                             )}
                                         </div>

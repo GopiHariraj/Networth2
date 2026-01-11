@@ -54,8 +54,9 @@ export class DepreciatingAssetsService {
             currentValue = purchasePrice * Math.pow(1 - rateDecimal, yearsElapsed);
         }
 
-        // Ensure value doesn't go below 0
-        return Math.max(0, Number(currentValue.toFixed(2)));
+        // Ensure value doesn't go below salvage value (if set) or 0
+        const salvageValue = asset.salvageValue ? Number(asset.salvageValue) : 0;
+        return Math.max(salvageValue, Number(currentValue.toFixed(2)));
     }
 
     async findOne(id: string, userId: string) {
