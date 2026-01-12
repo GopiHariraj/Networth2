@@ -8,22 +8,74 @@ export class DepreciatingAssetsService {
 
     async create(userId: string, data: any) {
         try {
-            // Set defaults for new fields if they're missing
+            // Helper function to parse numeric values safely
+            const parseNumeric = (value: any): number | null => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
+                }
+                const parsed = typeof value === 'string' ? parseFloat(value) : Number(value);
+                return isNaN(parsed) ? null : parsed;
+            };
+
+            const parseInteger = (value: any): number | null => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
+                }
+                const parsed = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+                return isNaN(parsed) ? null : parsed;
+            };
+
+            // Validate depreciation method requirements
+            if (data.isDepreciationEnabled !== false) {
+                if (data.depreciationMethod === 'STRAIGHT_LINE') {
+                    const usefulLife = parseInteger(data.usefulLife);
+                    if (!usefulLife || usefulLife <= 0) {
+                        throw new Error('Useful life is required and must be greater than 0 for STRAIGHT_LINE depreciation');
+                    }
+                } else if (data.depreciationMethod === 'PERCENTAGE') {
+                    const rate = parseNumeric(data.rate);
+                    if (!rate || rate <= 0) {
+                        throw new Error('Depreciation rate is required and must be greater than 0 for PERCENTAGE depreciation');
+                    }
+                }
+            }
+
+            // Build create data with proper type conversion
             const createData: any = {
                 userId,
                 name: data.name,
                 type: data.type,
-                purchasePrice: data.purchasePrice,
+                purchasePrice: parseNumeric(data.purchasePrice) ?? data.purchasePrice,
                 purchaseDate: new Date(data.purchaseDate),
                 depreciationMethod: data.depreciationMethod,
-                rate: data.rate || null,
-                usefulLife: data.usefulLife || null,
                 isDepreciationEnabled: data.isDepreciationEnabled ?? true,
-                notes: data.notes || null,
             };
 
-            if (data.purchaseCurrency) { createData.purchaseCurrency = data.purchaseCurrency; }
-            if (data.salvageValue) { createData.salvageValue = data.salvageValue; }
+            // Handle optional numeric fields with proper conversion
+            const rate = parseNumeric(data.rate);
+            const usefulLife = parseInteger(data.usefulLife);
+            const salvageValue = parseNumeric(data.salvageValue);
+
+            if (rate !== null) {
+                createData.rate = rate;
+            }
+
+            if (usefulLife !== null) {
+                createData.usefulLife = usefulLife;
+            }
+
+            if (salvageValue !== null) {
+                createData.salvageValue = salvageValue;
+            }
+
+            // Handle optional string fields
+            if (data.purchaseCurrency) {
+                createData.purchaseCurrency = data.purchaseCurrency;
+            }
+
+            if (data.notes) {
+                createData.notes = data.notes;
+            }
 
             return this.prisma.depreciatingAsset.create({
                 data: createData,
@@ -36,9 +88,7 @@ export class DepreciatingAssetsService {
                 console.error('Prisma Error Meta:', error.meta);
             }
 
-            // Re-throw as InternalServerErrorException but with message
-            // or better, throw BadRequestException if it's a validation thing.
-            // For now, let's throw a more descriptive error.
+            // Re-throw with descriptive message
             throw new Error(`Failed to create asset: ${error.message}`);
         }
     }
