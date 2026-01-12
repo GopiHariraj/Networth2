@@ -15,7 +15,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -32,6 +32,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
-    return this.authService.updatePassword(req.user.id, dto.newPassword);
+    return this.authService.updatePassword(req.user.id, dto.currentPassword, dto.newPassword);
   }
 }

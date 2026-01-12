@@ -54,15 +54,15 @@ export class AuthService {
   }
 
   /**
-   * Updates a user's password and clears the forceChangePassword flag.
-   * This is typically called after a forced reset or magic link login.
+   * Updates a user's password after verifying the current password.
+   * Requires current password for security.
    */
-  async updatePassword(userId: string, newPass: string) {
+  async updatePassword(userId: string, currentPassword: string, newPassword: string) {
     if (!userId) {
       throw new UnauthorizedException('User ID is required for password update');
     }
 
-    // Verify user exists first
+    // Verify user exists
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -71,16 +71,33 @@ export class AuthService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
+    // Verify current password
+    if (!user.passwordHash) {
+      throw new BadRequestException('User does not have a password set');
+    }
+
     try {
-      const hash = await argon2.hash(newPass);
+      const isCurrentPasswordValid = await argon2.verify(user.passwordHash, currentPassword);
+
+      if (!isCurrentPasswordValid) {
+        throw new UnauthorizedException('Current password is incorrect');
+      }
+
+      // Ensure new password is different from current
+      if (currentPassword === newPassword) {
+        throw new BadRequestException('New password must be different from current password');
+      }
+
+      // Hash and update new password
+      const hash = await argon2.hash(newPassword);
 
       await this.prisma.user.update({
         where: { id: userId },
         data: {
           passwordHash: hash,
-          password: null, // Ensure any plaintext password is removed
+          password: null,
           forceChangePassword: false,
-          resetToken: null, // Clear these if they were using a recovery link
+          resetToken: null,
           resetTokenExpiry: null,
         },
       });
@@ -90,7 +107,11 @@ export class AuthService {
         message: 'Password updated successfully'
       };
     } catch (error) {
-      // In a production app, log the error here
+      // Re-throw our custom exceptions
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      // For unexpected errors
       throw new BadRequestException('Failed to update password. Please ensure requirements are met.');
     }
   }
