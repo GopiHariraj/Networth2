@@ -12,7 +12,7 @@ export interface Currency {
 }
 
 export const CURRENCIES: Currency[] = [
-    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' },
+    { code: 'AED', name: 'UAE Dirham', symbol: 'AED', flag: '🇦🇪' },
     { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
     { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
     { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧' },
