@@ -22,6 +22,7 @@ export const stockAssetsApi = {
     create: (data: any) => apiClient.post('/stock-assets', data),
     update: (id: string, data: any) => apiClient.put(`/stock-assets/${id}`, data),
     delete: (id: string) => apiClient.delete(`/stock-assets/${id}`),
+    getQuote: (symbol: string) => apiClient.get(`/stock-assets/quote/${symbol}`),
     refreshPrice: (id: string) => apiClient.post(`/stock-assets/${id}/refresh-price`),
     refreshAllPrices: () => apiClient.post('/stock-assets/refresh-all-prices'),
 };

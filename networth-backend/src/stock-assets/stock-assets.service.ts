@@ -186,6 +186,20 @@ export class StockAssetsService {
     };
   }
 
+  async getQuoteBySymbol(symbol: string) {
+    try {
+      const quote = await this.alphaVantageService.getStockQuote(symbol);
+      return {
+        symbol: quote.symbol,
+        price: quote.price,
+        currency: 'USD', // Alpha Vantage returns USD prices
+      };
+    } catch (error) {
+      console.error(`Failed to get quote for ${symbol}:`, error);
+      throw error;
+    }
+  }
+
   async delete(id: string, userId: string) {
     const asset = await this.findOne(id, userId);
     if (!asset) {

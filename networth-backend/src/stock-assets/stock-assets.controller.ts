@@ -45,6 +45,11 @@ export class StockAssetsController {
     return this.stockAssetsService.update(id, req.user.id, dto);
   }
 
+  @Get('quote/:symbol')
+  async getQuote(@Param('symbol') symbol: string) {
+    return this.stockAssetsService.getQuoteBySymbol(symbol);
+  }
+
   @Post(':id/refresh-price')
   refreshPrice(@Param('id') id: string, @Request() req: any) {
     return this.stockAssetsService.refreshPrice(id, req.user.id);

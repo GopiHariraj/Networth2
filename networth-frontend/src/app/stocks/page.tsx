@@ -428,14 +428,39 @@ export default function StocksPage() {
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Current Price</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.currentPrice}
-                                            onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
-                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
-                                            placeholder="Optional"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={formData.currentPrice}
+                                                onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
+                                                className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                                placeholder="Optional"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (!formData.symbol) {
+                                                        alert('Please enter a stock symbol first');
+                                                        return;
+                                                    }
+                                                    try {
+                                                        const response = await financialDataApi.stockAssets.getQuote(formData.symbol.toUpperCase());
+                                                        const price = response.data.price;
+                                                        if (price) {
+                                                            setFormData({ ...formData, currentPrice: price.toString() });
+                                                            alert(`✅ Got latest price: $${price.toFixed(2)}`);
+                                                        }
+                                                    } catch (error: any) {
+                                                        alert('❌ Failed to fetch price: ' + (error.response?.data?.message || error.message));
+                                                    }
+                                                }}
+                                                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap"
+                                            >
+                                                🔄 Get Price
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-500">Leave empty to use purchase price</p>
                                     </div>
                                 </div>
                                 <button
