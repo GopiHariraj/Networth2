@@ -99,7 +99,7 @@ export default function StocksPage() {
                 quantity: parseFloat(formData.quantity),
                 avgPrice: parseFloat(formData.avgPrice),
                 currentPrice: parseFloat(formData.currentPrice || formData.avgPrice),
-                currency: currency.code
+                currency: formData.currency
             };
 
             if (editingId) {
@@ -388,7 +388,7 @@ export default function StocksPage() {
                                         placeholder="e.g. Apple Inc."
                                     />
                                 </div>
-                                <div className="grid grid-cols-3 gap-6">
+                                <div className="grid grid-cols-4 gap-6">
                                     <div className="space-y-1">
                                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Quantity</label>
                                         <input
@@ -410,6 +410,21 @@ export default function StocksPage() {
                                             onChange={(e) => setFormData({ ...formData, avgPrice: e.target.value })}
                                             className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
                                         />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Purchase Currency</label>
+                                        <select
+                                            value={formData.currency}
+                                            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                        >
+                                            <option value="AED">AED</option>
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                            <option value="GBP">GBP</option>
+                                            <option value="INR">INR</option>
+                                            <option value="SAR">SAR</option>
+                                        </select>
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Current Price</label>
