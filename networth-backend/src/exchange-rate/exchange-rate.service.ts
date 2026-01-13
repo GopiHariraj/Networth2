@@ -29,8 +29,25 @@ export class ExchangeRateService {
                 try {
                     const url = `${this.baseUrl}?function=CURRENCY_EXCHANGE_RATE&from_currency=${baseCurrency}&to_currency=${targetCurrency}&apikey=${this.alphaVantageApiKey}`;
 
-                    const response = await fetch(url);
-                    const data = await response.json();
+                    console.log(`[ExchangeRateService] Fetching ${baseCurrency}->${targetCurrency}...`);
+
+                    // Use native https module for compatibility
+                    const data: any = await new Promise((resolve, reject) => {
+                        const https = require('https');
+                        https.get(url, { headers: { 'User-Agent': 'NestJS' } }, (res: any) => {
+                            let body = '';
+                            res.on('data', (chunk: any) => body += chunk);
+                            res.on('end', () => {
+                                try {
+                                    resolve(JSON.parse(body));
+                                } catch (e) {
+                                    reject(new Error('Failed to parse response'));
+                                }
+                            });
+                        }).on('error', reject);
+                    }).catch(err => {
+                        throw new Error(`HTTP request failed: ${err.message}`);
+                    });
 
                     // Check for API errors
                     if ('Error Message' in data) {
@@ -46,6 +63,7 @@ export class ExchangeRateService {
                     const exchangeData = data['Realtime Currency Exchange Rate'];
                     if (!exchangeData) {
                         console.error(`[ExchangeRateService] No exchange rate data for ${baseCurrency}->${targetCurrency}`);
+                        console.log(`[ExchangeRateService] Full response:`, JSON.stringify(data));
                         continue;
                     }
 
@@ -56,10 +74,13 @@ export class ExchangeRateService {
                     }
 
                     rates[targetCurrency] = rate;
-                    console.log(`[ExchangeRateService] Got rate ${baseCurrency}->${targetCurrency}: ${rate}`);
+                    console.log(`[ExchangeRateService] ✓ Got rate ${baseCurrency}->${targetCurrency}: ${rate}`);
 
-                    // Add small delay to respect rate limits (5 requests/minute = 12s between requests)
-                    await new Promise(resolve => setTimeout(resolve, 12000));
+                    // Add small delay to respect rate limits (5 requests/minute = 12s between requests)  
+                    if (targetCurrencies.indexOf(targetCurrency) < targetCurrencies.length - 1) {
+                        console.log('[ExchangeRateService] Waiting 12s before next request...');
+                        await new Promise(resolve => setTimeout(resolve, 12000));
+                    }
                 } catch (error) {
                     console.error(`[ExchangeRateService] Failed to fetch ${baseCurrency}->${targetCurrency}:`, error.message);
                     continue;
