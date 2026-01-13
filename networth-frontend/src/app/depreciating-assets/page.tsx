@@ -155,7 +155,7 @@ export default function DepreciatingAssetsPage() {
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mb-8 max-w-sm">
                     <div className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-1">Total Current Value</div>
                     <div className="text-4xl font-black text-slate-900 dark:text-white">
-                        {currency.symbol} {convert(totalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {currency.symbol} {convert(totalValue, 'AED').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
 
@@ -183,12 +183,12 @@ export default function DepreciatingAssetsPage() {
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                                         <div>
                                             <div className="text-xs text-slate-500 mb-1">Purchase Price</div>
-                                            <div className="font-semibold">{currency.symbol} {convert(asset.purchasePrice).toLocaleString()}</div>
+                                            <div className="font-semibold">{currency.symbol} {convert(asset.purchasePrice, asset.purchaseCurrency || 'AED').toLocaleString()}</div>
                                         </div>
                                         <div>
                                             <div className="text-xs text-slate-500 mb-1">Current Value</div>
                                             <div className={`font-bold ${asset.currentValue < asset.purchasePrice ? 'text-orange-600' : 'text-slate-900'}`}>
-                                                {currency.symbol} {convert(asset.currentValue).toLocaleString()}
+                                                {currency.symbol} {convert(asset.currentValue, asset.purchaseCurrency || 'AED').toLocaleString()}
                                             </div>
                                         </div>
                                         <div>
@@ -209,7 +209,7 @@ export default function DepreciatingAssetsPage() {
                                         <div>
                                             <div className="text-xs text-slate-500 mb-1">Loss in Value</div>
                                             <div className="text-red-500 font-medium">
-                                                -{currency.symbol} {convert(asset.purchasePrice - asset.currentValue).toLocaleString()}
+                                                -{currency.symbol} {convert(asset.purchasePrice - asset.currentValue, asset.purchaseCurrency || 'AED').toLocaleString()}
                                             </div>
                                         </div>
                                     </div>
@@ -306,6 +306,7 @@ export default function DepreciatingAssetsPage() {
                                             <option value="EUR">🇪🇺 EUR</option>
                                             <option value="INR">🇮🇳 INR</option>
                                             <option value="GBP">🇬🇧 GBP</option>
+                                            <option value="SAR">🇸🇦 SAR</option>
                                         </select>
                                     </div>
                                 </div>
