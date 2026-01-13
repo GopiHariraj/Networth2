@@ -1,58 +1,77 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { GeminiService } from '../common/openai/gemini.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ExchangeRateService {
+    private readonly alphaVantageApiKey: string;
+    private readonly baseUrl = 'https://www.alphavantage.co/query';
+
     constructor(
         private prisma: PrismaService,
-        private geminiService: GeminiService,
-    ) { }
+        private configService: ConfigService,
+    ) {
+        this.alphaVantageApiKey = this.configService.get<string>('ALPHA_VANTAGE_API_KEY') || 'TPVKHORBWQ1ZPWQX';
+    }
 
     /**
-     * Fetch live exchange rates from Gemini AI
+     * Fetch live exchange rates from Alpha Vantage
      */
     async fetchLiveRates(baseCurrency: string, targetCurrencies: string[]) {
         try {
-            const prompt = `Provide current real-time exchange rates from ${baseCurrency} to the following currencies: ${targetCurrencies.join(', ')}.
+            const rates: Record<string, number> = {};
 
-Return ONLY a valid JSON object with currency codes as keys and exchange rates as decimal numbers. 
-Example format: {"USD":0.272,"EUR":0.251,"GBP":0.214,"INR":22.74,"SAR":1.02}
+            console.log('[ExchangeRateService] Fetching rates from Alpha Vantage for', baseCurrency, 'to', targetCurrencies);
 
-IMPORTANT: Return ONLY the JSON object, no explanatory text before or after.`;
+            // Fetch rates for each target currency
+            // Note: Alpha Vantage free tier: 25 requests/day, 5 requests/minute
+            for (const targetCurrency of targetCurrencies) {
+                try {
+                    const url = `${this.baseUrl}?function=CURRENCY_EXCHANGE_RATE&from_currency=${baseCurrency}&to_currency=${targetCurrency}&apikey=${this.alphaVantageApiKey}`;
 
-            console.log('[ExchangeRateService] Fetching rates from Gemini for', baseCurrency, 'to', targetCurrencies);
-            const response = await this.geminiService.generateContent(prompt);
-            console.log('[ExchangeRateService] Gemini raw response:', response);
+                    const response = await fetch(url);
+                    const data = await response.json();
 
-            // Try to extract JSON from response - handle markdown code blocks
-            let jsonText = response.trim();
+                    // Check for API errors
+                    if ('Error Message' in data) {
+                        console.error(`[ExchangeRateService] Alpha Vantage error for ${baseCurrency}->${targetCurrency}:`, data['Error Message']);
+                        continue;
+                    }
 
-            // Remove markdown code blocks if present
-            jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                    if ('Note' in data) {
+                        console.warn('[ExchangeRateService] Alpha Vantage rate limit hit:', data['Note']);
+                        throw new Error('Alpha Vantage API rate limit exceeded');
+                    }
 
-            // Find JSON object
-            const jsonMatch = jsonText.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
-            if (!jsonMatch) {
-                console.error('[ExchangeRateService] No valid JSON found in response');
-                throw new Error('Invalid response format from Gemini - no JSON object found');
+                    const exchangeData = data['Realtime Currency Exchange Rate'];
+                    if (!exchangeData) {
+                        console.error(`[ExchangeRateService] No exchange rate data for ${baseCurrency}->${targetCurrency}`);
+                        continue;
+                    }
+
+                    const rate = parseFloat(exchangeData['5. Exchange Rate']);
+                    if (isNaN(rate) || rate <= 0) {
+                        console.error(`[ExchangeRateService] Invalid rate for ${targetCurrency}:`, rate);
+                        continue;
+                    }
+
+                    rates[targetCurrency] = rate;
+                    console.log(`[ExchangeRateService] Got rate ${baseCurrency}->${targetCurrency}: ${rate}`);
+
+                    // Add small delay to respect rate limits (5 requests/minute = 12s between requests)
+                    await new Promise(resolve => setTimeout(resolve, 12000));
+                } catch (error) {
+                    console.error(`[ExchangeRateService] Failed to fetch ${baseCurrency}->${targetCurrency}:`, error.message);
+                    continue;
+                }
             }
 
-            const rates = JSON.parse(jsonMatch[0]);
-            console.log('[ExchangeRateService] Parsed rates:', rates);
-
-            // Validate rates object
-            if (typeof rates !== 'object' || Object.keys(rates).length === 0) {
-                throw new Error('Invalid rates object from Gemini');
+            if (Object.keys(rates).length === 0) {
+                throw new Error('No exchange rates could be fetched from Alpha Vantage');
             }
 
             // Store in database
             for (const [currency, rate] of Object.entries(rates)) {
-                if (typeof rate !== 'number' || rate <= 0) {
-                    console.warn(`[ExchangeRateService] Invalid rate for ${currency}:`, rate);
-                    continue;
-                }
-
                 await this.prisma.exchangeRate.upsert({
                     where: {
                         baseCurrency_targetCurrency: {
@@ -64,17 +83,17 @@ IMPORTANT: Return ONLY the JSON object, no explanatory text before or after.`;
                         baseCurrency,
                         targetCurrency: currency,
                         rate: Number(rate),
-                        source: 'gemini',
+                        source: 'alpha_vantage',
                     },
                     update: {
                         rate: Number(rate),
-                        source: 'gemini',
+                        source: 'alpha_vantage',
                         fetchedAt: new Date(),
                     },
                 });
             }
 
-            console.log('[ExchangeRateService] Successfully stored rates in database');
+            console.log('[ExchangeRateService] Successfully stored', Object.keys(rates).length, 'rates in database');
             return { success: true, rates, fetchedAt: new Date() };
         } catch (error) {
             console.error('[ExchangeRateService] Failed to fetch live rates:', error.message, error.stack);
