@@ -44,17 +44,15 @@ export class AlphaVantageService {
     private async getIndianStockQuote(symbol: string): Promise<{ price: number; symbol: string }> {
         try {
             const cleanSymbol = this.getCleanSymbol(symbol);
-            const exchange = symbol.endsWith('.BSE') || symbol.endsWith('.BO') ? 'BSE' : 'NSE';
 
-            // Indian API endpoint format - adjust based on actual API documentation
-            const url = `${this.indianApiUrl}/market-data/live-price?symbol=${cleanSymbol}&exchange=${exchange}`;
+            // Indian API uses /stock?name= endpoint with company name/symbol
+            const url = `${this.indianApiUrl}/stock?name=${encodeURIComponent(cleanSymbol)}`;
 
-            console.log(`[IndianStockAPI] Fetching ${symbol} from ${exchange}...`);
+            console.log(`[IndianStockAPI] Fetching ${symbol}...`);
 
             const response = await fetch(url, {
                 headers: {
                     'X-Api-Key': this.indianApiKey,
-                    'Content-Type': 'application/json',
                 }
             });
 
@@ -67,8 +65,17 @@ export class AlphaVantageService {
 
             const data: any = await response.json();
 
-            // Adjust based on actual API response format
-            const price = parseFloat(data.price || data.ltp || data.lastPrice || data.close);
+            console.log(`[IndianStockAPI] Response:`, JSON.stringify(data).substring(0, 200));
+
+            // Extract price from response - adjust field names based on actual response
+            const price = parseFloat(
+                data.price ||
+                data.ltp ||
+                data.lastPrice ||
+                data.close ||
+                data.currentPrice ||
+                data.last_price
+            );
 
             if (isNaN(price)) {
                 throw new HttpException(
