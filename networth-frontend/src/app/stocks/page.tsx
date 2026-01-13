@@ -38,6 +38,8 @@ export default function StocksPage() {
     const [showTransactionModal, setShowTransactionModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [refreshingPrices, setRefreshingPrices] = useState(false);
+    const [lastPriceUpdate, setLastPriceUpdate] = useState<Date | null>(null);
 
     const [formData, setFormData] = useState({
         symbol: '',
@@ -167,6 +169,21 @@ export default function StocksPage() {
         }
     };
 
+    const handleRefreshAllPrices = async () => {
+        setRefreshingPrices(true);
+        try {
+            const response = await financialDataApi.stockAssets.refreshAllPrices();
+            await refreshNetWorth();
+            setLastPriceUpdate(new Date());
+            alert(`✅ ${response.data.message || 'Prices updated successfully'}`);
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Failed to refresh prices. Please try again.';
+            alert(`❌ ${message}`);
+        } finally {
+            setRefreshingPrices(false);
+        }
+    };
+
     const totalMarketValue = stocks.reduce((sum, s) => sum + convertRaw(s.quantity * s.currentPrice, s.currency, 'AED'), 0);
     const totalCostBasis = stocks.reduce((sum, s) => sum + convertRaw(s.quantity * s.avgPrice, s.currency, 'AED'), 0);
     const totalGainLoss = totalMarketValue - totalCostBasis;
@@ -184,20 +201,35 @@ export default function StocksPage() {
                                 📈 Stocks Portfolio
                             </h1>
                             <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your holdings with transaction-based tracking.</p>
+                            {lastPriceUpdate && (
+                                <p className="text-xs text-slate-400 mt-1">
+                                    Last updated: {lastPriceUpdate.toLocaleTimeString()}
+                                </p>
+                            )}
                         </div>
-                        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-                            {['Holdings', 'Add Asset', 'Analytics'].map(tab => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                        }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <button
+                                onClick={handleRefreshAllPrices}
+                                disabled={refreshingPrices || stocks.length === 0}
+                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-md flex items-center gap-2 justify-center"
+                            >
+                                <span className={refreshingPrices ? 'animate-spin' : ''}>🔄</span>
+                                {refreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
+                            </button>
+                            <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                                {['Holdings', 'Add Asset', 'Analytics'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
+                                            ? 'bg-blue-600 text-white shadow-md'
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                            }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </header>
 

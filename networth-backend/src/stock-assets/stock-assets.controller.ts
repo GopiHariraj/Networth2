@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('stock-assets')
 @UseGuards(JwtAuthGuard)
 export class StockAssetsController {
-  constructor(private stockAssetsService: StockAssetsService) {}
+  constructor(private stockAssetsService: StockAssetsService) { }
 
   @Get()
   findAll(@Request() req: any) {
@@ -43,6 +43,16 @@ export class StockAssetsController {
     @Body() dto: UpdateStockAssetDto,
   ) {
     return this.stockAssetsService.update(id, req.user.id, dto);
+  }
+
+  @Post(':id/refresh-price')
+  refreshPrice(@Param('id') id: string, @Request() req: any) {
+    return this.stockAssetsService.refreshPrice(id, req.user.id);
+  }
+
+  @Post('refresh-all-prices')
+  refreshAllPrices(@Request() req: any) {
+    return this.stockAssetsService.refreshAllPrices(req.user.id);
   }
 
   @Delete(':id')

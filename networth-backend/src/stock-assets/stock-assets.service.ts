@@ -4,10 +4,14 @@ import {
   CreateStockAssetDto,
   UpdateStockAssetDto,
 } from './dto/stock-asset.dto';
+import { AlphaVantageService } from './alpha-vantage.service';
 
 @Injectable()
 export class StockAssetsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private alphaVantageService: AlphaVantageService,
+  ) { }
 
   async findAll(userId: string) {
     const assets = await this.prisma.stockAsset.findMany({
@@ -121,6 +125,65 @@ export class StockAssetsService {
         avgPrice: avgBuyPrice,
       },
     });
+  }
+
+  async refreshPrice(id: string, userId: string) {
+    const asset = await this.findOne(id, userId);
+    if (!asset) {
+      throw new NotFoundException('Stock asset not found');
+    }
+
+    try {
+      const quote = await this.alphaVantageService.getStockQuote(asset.symbol);
+
+      // Update the current price (Alpha Vantage returns USD prices)
+      const updated = await this.prisma.stockAsset.update({
+        where: { id },
+        data: {
+          currentPrice: quote.price,
+          currency: 'USD', // Alpha Vantage returns prices in USD
+        },
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`Failed to refresh price for ${asset.symbol}:`, error);
+      throw error;
+    }
+  }
+
+  async refreshAllPrices(userId: string) {
+    const assets = await this.prisma.stockAsset.findMany({
+      where: { userId },
+    });
+
+    if (assets.length === 0) {
+      return { message: 'No stocks to refresh', updated: 0 };
+    }
+
+    const symbols = assets.map(a => a.symbol);
+    const prices = await this.alphaVantageService.getBatchQuotes(symbols);
+
+    let updated = 0;
+    for (const asset of assets) {
+      const newPrice = prices.get(asset.symbol);
+      if (newPrice) {
+        await this.prisma.stockAsset.update({
+          where: { id: asset.id },
+          data: {
+            currentPrice: newPrice,
+            currency: 'USD',
+          },
+        });
+        updated++;
+      }
+    }
+
+    return {
+      message: `Successfully updated ${updated} out of ${assets.length} stocks`,
+      updated,
+      total: assets.length,
+    };
   }
 
   async delete(id: string, userId: string) {
