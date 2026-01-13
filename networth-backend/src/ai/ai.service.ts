@@ -1,25 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 @Injectable()
 export class AiService {
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private openai: OpenAI | null = null;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+
     if (apiKey) {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel(
-        { model: 'gemini-1.5-flash' },
-        { apiVersion: 'v1' }
-      );
+      this.openai = new OpenAI({ apiKey });
+      console.log('[AiService] Initialized with OpenAI API');
+    } else {
+      console.warn('[AiService] OpenAI API key not found');
     }
   }
 
   async parseFinanceUpdate(text: string) {
-    if (!this.model) {
+    if (!this.openai) {
       return this.mockParse(text);
     }
 
@@ -41,18 +40,16 @@ export class AiService {
         Text: "${text}"
       `;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const textResponse = response.text();
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      });
 
-      // Clean up markdown code blocks if present
-      const jsonStr = textResponse
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      return JSON.parse(jsonStr);
+      const responseText = completion.choices[0]?.message?.content || '{}';
+      return JSON.parse(responseText);
     } catch (error) {
-      console.error('Gemini API Error:', error);
+      console.error('OpenAI API Error:', error);
       return this.mockParse(text);
     }
   }
@@ -83,8 +80,9 @@ export class AiService {
     // or assume the frontend calls specific endpoints based on this data.
     return { success: true, message: 'Updates processed successfully' };
   }
+
   async chat(message: string, context: any) {
-    if (!this.model) {
+    if (!this.openai) {
       return {
         text: "I'm sorry, but I haven't been configured with an API key yet. Please check your settings.",
         chart: null
@@ -116,11 +114,15 @@ export class AiService {
         Just return the markdown response directly.
       `;
 
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return { text: response.text() };
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const responseText = completion.choices[0]?.message?.content || "I'm having trouble processing your request.";
+      return { text: responseText };
     } catch (error) {
-      console.error('Gemini Chat Error:', error);
+      console.error('OpenAI Chat Error:', error);
       return { text: "I'm having trouble connecting to my brain right now. Please try again later." };
     }
   }
