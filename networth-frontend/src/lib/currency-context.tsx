@@ -111,14 +111,21 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
     const fetchExchangeRates = async () => {
         try {
+            console.log('[CurrencyContext] Fetching exchange rates from API...');
             const response = await apiClient.get('/exchange-rates');
             const data = response.data;
+
+            console.log('[CurrencyContext] Received exchange rate data:', data);
+            console.log('[CurrencyContext] Extracted rates:', data.rates);
+            console.log('[CurrencyContext] Number of rates:', Object.keys(data.rates || {}).length);
 
             setExchangeRates(data.rates || {});
             setLastUpdate(data.fetchedAt ? new Date(data.fetchedAt) : new Date());
             setIsUsingCache(data.usingCache || false);
+
+            console.log('[CurrencyContext] Exchange rates set successfully:', data.rates);
         } catch (error) {
-            console.error('Failed to fetch exchange rates:', error);
+            console.error('[CurrencyContext] Failed to fetch exchange rates:', error);
             // Keep existing rates if fetch fails
         }
     };
@@ -181,13 +188,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
      * @returns Converted amount in display currency
      */
     const convert = (amount: number, fromCurrency: string = 'AED'): number => {
+        console.log(`[CurrencyContext] Converting ${amount} from ${fromCurrency} to ${currency.code}`);
+        console.log('[CurrencyContext] Available exchange rates:', exchangeRates);
+
         // If same currency, no conversion needed
         if (fromCurrency === currency.code) {
+            console.log('[CurrencyContext] Same currency, no conversion needed');
             return amount;
         }
 
         // If no exchange rates loaded, return original amount
         if (Object.keys(exchangeRates).length === 0) {
+            console.warn('[CurrencyContext] No exchange rates loaded! Returning original amount');
             return amount;
         }
 
@@ -198,26 +210,32 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
             // If fromCurrency is not AED, convert to AED first
             if (fromCurrency !== 'AED') {
                 const rateToAED = exchangeRates[fromCurrency];
+                console.log(`[CurrencyContext] Rate ${fromCurrency}->AED:`, rateToAED);
                 if (!rateToAED) {
                     console.warn(`No exchange rate found for ${fromCurrency}, using original amount`);
                     return amount;
                 }
                 // If rate is AED->USD = 0.27, then USD->AED = 1/0.27
                 amountInAED = amount / rateToAED;
+                console.log(`[CurrencyContext] ${amount} ${fromCurrency} = ${amountInAED} AED`);
             }
 
             // Now convert from AED to target currency
             if (currency.code === 'AED') {
+                console.log('[CurrencyContext] Target is AED, returning:', amountInAED);
                 return amountInAED;
             }
 
             const rateFromAED = exchangeRates[currency.code];
+            console.log(`[CurrencyContext] Rate AED->${currency.code}:`, rateFromAED);
             if (!rateFromAED) {
                 console.warn(`No exchange rate found for ${currency.code}, using original amount`);
                 return amount;
             }
 
-            return amountInAED * rateFromAED;
+            const result = amountInAED * rateFromAED;
+            console.log(`[CurrencyContext] Final result: ${amountInAED} AED = ${result} ${currency.code}`);
+            return result;
         } catch (error) {
             console.error('Currency conversion error:', error);
             return amount;
