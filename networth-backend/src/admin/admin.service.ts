@@ -106,52 +106,87 @@ export class AdminService {
 
     // 2. Import users (except those that already exist - primarily the admin)
     const existingUsers = await this.prisma.user.findMany();
-    const existingEmails = existingUsers.map((u) => u.email);
+    // Create a map of Email -> ID for existing users
+    const existingUserMap = new Map<string, string>();
+    existingUsers.forEach(u => existingUserMap.set(u.email, u.id));
 
-    const usersToImport = (data.users || []).filter(
-      (u: any) => !existingEmails.includes(u.email),
-    );
+    // Map to track OldID -> NewID
+    const userIdMap = new Map<string, string>();
+
+    const usersToImport = data.users || [];
 
     for (const user of usersToImport) {
-      await this.prisma.user.create({ data: user });
+      if (existingUserMap.has(user.email)) {
+        // User exists (e.g. Admin), map Old Backup ID -> Current DB ID
+        const currentId = existingUserMap.get(user.email);
+        userIdMap.set(user.id, currentId!);
+        console.log(`[Import] Mapping existing user ${user.email} from ${user.id} -> ${currentId}`);
+      } else {
+        // User does not exist, create them
+        // We try to keep the old ID if possible, but if there's a collision (unlikely with UUIDs), Prisma might throw.
+        // Safer to let Prisma/DB generate ID if we wanted, but let's try to use the backup ID first.
+        // Actually, if we create, we should store the mapping just in case constraints etc.
+        try {
+          const createdUser = await this.prisma.user.create({ data: user });
+          userIdMap.set(user.id, createdUser.id);
+        } catch (e) {
+          // Fallback: if creation failed (maybe ID conflict?), try creating without ID
+          const { id, ...userData } = user;
+          const createdUser = await this.prisma.user.create({ data: userData });
+          userIdMap.set(user.id, createdUser.id);
+        }
+      }
     }
 
-    // 3. Import other data
-    // We use a simple loop to maintain order if necessary, but most can be batch created
+    // Helper to update foreign keys
+    const updateForeignKeys = (items: any[]) => {
+      if (!items) return [];
+      return items.map(item => {
+        if (item.userId && userIdMap.has(item.userId)) {
+          item.userId = userIdMap.get(item.userId);
+        }
+        return item;
+      });
+    };
+
+    // 3. Import other data with updated IDs
     if (data.expenseCategories)
       await this.prisma.expenseCategory.createMany({
-        data: data.expenseCategories,
+        data: updateForeignKeys(data.expenseCategories),
       });
     if (data.categories)
-      await this.prisma.category.createMany({ data: data.categories });
+      // Some categories might already exist (system defaults potentially), verify constraints? 
+      // For simplicity assuming resetDatabase cleared relevant ones or unique constraints won't trigger if system categories are global.
+      // AdminService.resetDatabase() clears Category table, so we are good.
+      await this.prisma.category.createMany({ data: updateForeignKeys(data.categories) });
     if (data.bankAccounts)
-      await this.prisma.bankAccount.createMany({ data: data.bankAccounts });
+      await this.prisma.bankAccount.createMany({ data: updateForeignKeys(data.bankAccounts) });
     if (data.goldAssets)
-      await this.prisma.goldAsset.createMany({ data: data.goldAssets });
+      await this.prisma.goldAsset.createMany({ data: updateForeignKeys(data.goldAssets) });
     if (data.stockAssets)
-      await this.prisma.stockAsset.createMany({ data: data.stockAssets });
+      await this.prisma.stockAsset.createMany({ data: updateForeignKeys(data.stockAssets) });
     if (data.bondAssets)
-      await this.prisma.bondAsset.createMany({ data: data.bondAssets });
+      await this.prisma.bondAsset.createMany({ data: updateForeignKeys(data.bondAssets) });
     if (data.mutualFundAssets)
       await this.prisma.mutualFundAsset.createMany({
-        data: data.mutualFundAssets,
+        data: updateForeignKeys(data.mutualFundAssets),
       });
     if (data.properties)
-      await this.prisma.property.createMany({ data: data.properties });
-    if (data.loans) await this.prisma.loan.createMany({ data: data.loans });
+      await this.prisma.property.createMany({ data: updateForeignKeys(data.properties) });
+    if (data.loans) await this.prisma.loan.createMany({ data: updateForeignKeys(data.loans) });
     if (data.creditCards)
-      await this.prisma.creditCard.createMany({ data: data.creditCards });
+      await this.prisma.creditCard.createMany({ data: updateForeignKeys(data.creditCards) });
     if (data.transactions)
-      await this.prisma.transaction.createMany({ data: data.transactions });
+      await this.prisma.transaction.createMany({ data: updateForeignKeys(data.transactions) });
     if (data.budgets)
-      await this.prisma.budget.createMany({ data: data.budgets });
+      await this.prisma.budget.createMany({ data: updateForeignKeys(data.budgets) });
     if (data.expenses)
-      await this.prisma.expense.createMany({ data: data.expenses });
-    if (data.goals) await this.prisma.goal.createMany({ data: data.goals });
+      await this.prisma.expense.createMany({ data: updateForeignKeys(data.expenses) });
+    if (data.goals) await this.prisma.goal.createMany({ data: updateForeignKeys(data.goals) });
     if (data.snapshots)
-      await this.prisma.netWorthSnapshot.createMany({ data: data.snapshots });
+      await this.prisma.netWorthSnapshot.createMany({ data: updateForeignKeys(data.snapshots) });
     if (data.auditLogs)
-      await this.prisma.auditLog.createMany({ data: data.auditLogs });
+      await this.prisma.auditLog.createMany({ data: updateForeignKeys(data.auditLogs) });
 
     return { success: true, message: 'Data imported successfully' };
   }
