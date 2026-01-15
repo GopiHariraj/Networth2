@@ -6,6 +6,7 @@ import { useAuth } from '../../lib/auth-context';
 import { apiClient } from '../../lib/api/client';
 
 export default function ResetPasswordPage() {
+    const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,7 +19,7 @@ export default function ResetPasswordPage() {
         setError('');
 
         // Validation
-        if (!newPassword || !confirmPassword) {
+        if (!currentPassword || !newPassword || !confirmPassword) {
             setError('All fields are required');
             return;
         }
@@ -54,6 +55,7 @@ export default function ResetPasswordPage() {
             await apiClient.post(
                 '/auth/change-password',
                 {
+                    currentPassword,
                     newPassword,
                 }
             );
@@ -87,6 +89,21 @@ export default function ResetPasswordPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                            Current Password
+                        </label>
+                        <input
+                            type="password"
+                            id="currentPassword"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            placeholder="Enter your current password (e.g. Forts@123)"
+                            required
+                        />
+                    </div>
+
                     <div>
                         <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
                             New Password
