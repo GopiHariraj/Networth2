@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
             <aside className={`
                 ${isCollapsed ? 'w-20' : 'w-64'}
                 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 
-                min-h-screen fixed left-0 top-0 flex flex-col z-40 transition-all duration-300
+                h-[100dvh] fixed left-0 top-0 flex flex-col z-40 transition-all duration-300
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
             `}>

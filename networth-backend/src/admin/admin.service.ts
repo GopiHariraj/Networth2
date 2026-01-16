@@ -8,13 +8,30 @@ export class AdminService {
   async resetDatabase() {
     // Delete all data from all tables except preserve admin user
 
-    // Get admin user ID to preserve
-    const adminUser = await this.prisma.user.findUnique({
+    // Get admin user ID to preserve (try standard admin, then Kingpin, then any super admin)
+    let adminUser = await this.prisma.user.findUnique({
       where: { email: 'admin@fortstec.com' },
     });
 
     if (!adminUser) {
-      throw new Error('Admin user not found. Cannot reset database safely.');
+      adminUser = await this.prisma.user.findUnique({
+        where: { email: 'Kingpin@fortstec.com' },
+      });
+    }
+
+    if (!adminUser) {
+      // Fallback: find ANY super admin to preserve
+      const superAdmins = await this.prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN' },
+        take: 1
+      });
+      if (superAdmins.length > 0) {
+        adminUser = superAdmins[0];
+      }
+    }
+
+    if (!adminUser) {
+      throw new Error('No Admin or Super Admin user found. Cannot reset database safely.');
     }
 
     // Count records before deletion
