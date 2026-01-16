@@ -67,12 +67,12 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
             <aside className={`
                 ${isCollapsed ? 'w-20' : 'w-64'}
                 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 
-                h-[100dvh] fixed left-0 top-0 flex flex-col z-40 transition-all duration-300
+                fixed inset-y-0 left-0 flex flex-col z-40 transition-all duration-300
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
             `}>
                 {/* Logo */}
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 shrink-0">
                     <div className="w-10 h-10 shrink-0 flex items-center justify-center">
                         <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                     </div>
@@ -89,7 +89,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                 </button>
 
                 {/* Navigation */}
-                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto">
+                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
                     {filteredItems.map((item) => (
                         <Link
                             key={item.path}
@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                 </nav>
 
                 {/* User Profile */}
-                <div className="p-4 border-t border-slate-200 dark:border-slate-700 relative">
+                <div className="p-4 border-t border-slate-200 dark:border-slate-700 relative shrink-0">
                     <button
                         id="sidebar-user-menu-trigger"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
