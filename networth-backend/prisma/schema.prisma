@@ -50,9 +50,6 @@ model User {
   // Module Visibility Settings
   moduleVisibility    Json?    // Optional JSON to store enabled/disabled modules
 
-  // Tour Status
-  isTourCompleted     Boolean  @default(false)
-
   // Relations
   bankAccounts  BankAccount[]
   goldAssets    GoldAsset[]

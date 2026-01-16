@@ -14,7 +14,6 @@ interface User {
     currency?: string;
     forceChangePassword?: boolean;
     moduleVisibility?: Record<string, boolean>;
-    isTourCompleted?: boolean;
 }
 
 interface AuthContextType {

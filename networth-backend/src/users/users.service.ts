@@ -216,9 +216,6 @@ export class UsersService {
         ...(updateUserDto.moduleVisibility !== undefined && {
           moduleVisibility: updateUserDto.moduleVisibility,
         }),
-        ...(updateUserDto.isTourCompleted !== undefined && {
-          isTourCompleted: updateUserDto.isTourCompleted,
-        }),
         ...(hashedPassword && { passwordHash: hashedPassword }),
       },
     });

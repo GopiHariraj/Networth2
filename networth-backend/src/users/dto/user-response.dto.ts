@@ -12,7 +12,6 @@ export class UserResponseDto {
   failedLoginAttempts: number;
   forceChangePassword: boolean;
   moduleVisibility: any;
-  isTourCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 
@@ -33,7 +32,6 @@ export class UserResponseDto {
       failedLoginAttempts: user.failedLoginAttempts,
       forceChangePassword: user.forceChangePassword,
       moduleVisibility: user.moduleVisibility,
-      isTourCompleted: user.isTourCompleted,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
