@@ -45,4 +45,8 @@ export class UpdateUserDto {
 
   @IsOptional()
   moduleVisibility?: any;
+
+  @IsOptional()
+  @IsBoolean()
+  isTourCompleted?: boolean;
 }

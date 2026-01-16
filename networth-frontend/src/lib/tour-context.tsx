@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from './auth-context';
 
 interface TourStep {
     targetId?: string; // Optional for welcome/centered steps
@@ -79,20 +80,23 @@ const TOUR_STEPS: TourStep[] = [
 const TourContext = createContext<TourContextType | undefined>(undefined);
 
 export function TourProvider({ children }: { children: ReactNode }) {
+    const { user, isAuthenticated, updateUser } = useAuth();
     const router = useRouter();
     const [isTourVisible, setIsTourVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
 
     useEffect(() => {
-        // Check if tour was already finished or skipped
-        const tourStatus = localStorage.getItem('first_login_completed');
-        if (tourStatus !== 'true') {
+        if (!isAuthenticated || !user) return;
+
+        // Check if tour was already finished in user profile
+        // Also check localStorage as fallback for legacy or guest behavior if needed (optional)
+        if (!user.isTourCompleted) {
             const timer = setTimeout(() => {
                 setIsTourVisible(true);
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, []);
+    }, [isAuthenticated, user?.isTourCompleted]);
 
     const nextStep = () => {
         if (currentStep < TOUR_STEPS.length - 1) {
@@ -108,14 +112,39 @@ export function TourProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const completeTourInBackend = async () => {
+        if (!user) return;
+
+        try {
+            // Optimistic update
+            updateUser({ isTourCompleted: true });
+
+            // Persist to backend
+            // We use fetch directly here to avoid circular dependencies if we used an API client that uses auth context
+            const token = localStorage.getItem('token');
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/users/${user.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ isTourCompleted: true })
+            });
+        } catch (error) {
+            console.error('Failed to save tour status', error);
+        }
+    };
+
     const skipTour = () => {
-        localStorage.setItem('first_login_completed', 'true');
         setIsTourVisible(false);
+        completeTourInBackend();
     };
 
     const finishTour = () => {
-        localStorage.setItem('first_login_completed', 'true');
         setIsTourVisible(false);
+        if (user) {
+            completeTourInBackend();
+        }
         router.push('/');
     };
 
