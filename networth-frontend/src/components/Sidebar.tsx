@@ -88,8 +88,8 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                     {isCollapsed ? '→' : '←'}
                 </button>
 
-                {/* Navigation */}
-                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
+                {/* Navigation - with padding bottom for profile */}
+                <nav id="sidebar-nav-container" className="flex-1 p-4 pb-20 space-y-1 overflow-y-auto min-h-0">
                     {filteredItems.map((item) => (
                         <Link
                             key={item.path}
@@ -116,8 +116,8 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                     ))}
                 </nav>
 
-                {/* User Profile */}
-                <div className="p-4 border-t border-slate-200 dark:border-slate-700 relative shrink-0">
+                {/* User Profile - Absolutely positioned at bottom */}
+                <div className={`absolute bottom-0 left-0 ${isCollapsed ? 'w-20' : 'w-64'} p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-all duration-300`}>
                     <button
                         id="sidebar-user-menu-trigger"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
