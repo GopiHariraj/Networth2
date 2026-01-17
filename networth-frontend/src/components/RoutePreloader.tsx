@@ -1,6 +1,6 @@
 "use client";
 
-import { useRoutePreloader } from '../../lib/hooks/useRoutePreloader';
+import { useRoutePreloader } from '../lib/hooks/useRoutePreloader';
 
 /**
  * Component that triggers aggressive route prefetching after authentication.
