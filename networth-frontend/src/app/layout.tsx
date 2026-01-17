@@ -6,6 +6,7 @@ import { CurrencyProvider } from "../lib/currency-context";
 import { NetWorthProvider } from "../lib/networth-context";
 import RootLayoutLayout from "../components/Layout";
 import SessionTimeout from "../components/auth/SessionTimeout";
+import RoutePreloader from "../components/RoutePreloader";
 import { SWRProvider } from "../lib/swr-config";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -29,6 +30,7 @@ export default function RootLayout({
                 <SWRProvider>
                     <AuthProvider>
                         <SessionTimeout />
+                        <RoutePreloader />
                         <CurrencyProvider>
                             <NetWorthProvider>
                                 <RootLayoutLayout>{children}</RootLayoutLayout>

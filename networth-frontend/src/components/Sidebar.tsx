@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
 
 const MENU_ITEMS = [
@@ -30,7 +30,22 @@ interface SidebarProps {
 function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCollapse }: SidebarProps) {
     const { isAuthenticated, logout, user } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    // Aggressive route prefetching - preload all routes on mount
+    useEffect(() => {
+        if (isAuthenticated) {
+            // Prefetch all routes in background for instant navigation
+            const routes = ['/', '/cash', '/gold', '/stocks', '/bonds', '/property',
+                '/mutual-funds', '/loans', '/insurance', '/depreciating-assets',
+                '/ai-analysis', '/expenses', '/reports', '/goals', '/settings'];
+
+            routes.forEach(route => {
+                router.prefetch(route);
+            });
+        }
+    }, [isAuthenticated, router]);
 
     if (!isAuthenticated) return null;
 
