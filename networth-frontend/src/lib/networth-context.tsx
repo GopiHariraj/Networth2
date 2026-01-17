@@ -363,15 +363,27 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
         setCurrentUserId(null);
     }, []);
 
-    // Effect to react to user changes
+    const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+    // Effect to react to user changes - OPTIMIZED: Load only once
     useEffect(() => {
-        if (isAuthenticated && user?.id && user.id !== currentUserId) {
-            setCurrentUserId(user.id);
-            loadAllData();
+        if (isAuthenticated && user?.id) {
+            if (user.id !== currentUserId) {
+                // User changed - reset and reload
+                setCurrentUserId(user.id);
+                setHasLoadedOnce(false);
+            }
+
+            // Load data only if we haven't loaded for this user yet
+            if (!hasLoadedOnce) {
+                loadAllData();
+                setHasLoadedOnce(true);
+            }
         } else if (!isAuthenticated && currentUserId !== null) {
             resetNetWorth();
+            setHasLoadedOnce(false);
         }
-    }, [isAuthenticated, user?.id, currentUserId, loadAllData, resetNetWorth]);
+    }, [isAuthenticated, user?.id, currentUserId, hasLoadedOnce, loadAllData, resetNetWorth]);
 
     const updateGold = async () => loadGold();
     const updateBonds = async () => loadBonds();

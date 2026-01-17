@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
@@ -27,7 +27,7 @@ interface SidebarProps {
     onToggleCollapse?: () => void;
 }
 
-export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCollapse }: SidebarProps) {
+function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCollapse }: SidebarProps) {
     const { isAuthenticated, logout, user } = useAuth();
     const pathname = usePathname();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,12 +46,13 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
         'Depreciating Assets': 'depreciatingAssets'
     };
 
-    const filteredItems = MENU_ITEMS.filter(item => {
+    // Memoize filtered items to prevent recalculation on every render
+    const filteredItems = useMemo(() => MENU_ITEMS.filter(item => {
         const key = visibilityKeyMap[item.name];
         if (!key) return true; // Core modules are always visible
         if (!user?.moduleVisibility) return true; // Default to visible if settings not loaded
         return user.moduleVisibility[key] !== false; // Explicitly hidden if false
-    });
+    }), [user?.moduleVisibility]);
 
     return (
         <>
@@ -193,3 +194,6 @@ export function HamburgerButton({ onClick, isOpen }: { onClick: () => void; isOp
         </button>
     );
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export default React.memo(Sidebar);
