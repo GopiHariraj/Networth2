@@ -49,6 +49,7 @@ model User {
 
   // Module Visibility Settings
   moduleVisibility    Json?    // Optional JSON to store enabled/disabled modules
+  enableProductTour   Boolean  @default(true) // Control product tour visibility on login
 
   // Relations
   bankAccounts  BankAccount[]

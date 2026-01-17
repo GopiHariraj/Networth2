@@ -64,6 +64,16 @@ export class UsersController {
     return { success: true, moduleVisibility: body.moduleVisibility };
   }
 
+  @Put('me/product-tour')
+  async updateProductTourPreference(
+    @Req() req: any,
+    @Body() body: { enableProductTour: boolean },
+  ): Promise<{ success: boolean; enableProductTour: boolean }> {
+    console.log(`[UsersController] updateProductTourPreference for user ${req.user.id}:`, body.enableProductTour);
+    await this.usersService.updateProductTourPreference(req.user.id, body.enableProductTour);
+    return { success: true, enableProductTour: body.enableProductTour };
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN)
   async getUserById(@Param('id') id: string): Promise<UserResponseDto> {

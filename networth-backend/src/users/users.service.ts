@@ -289,4 +289,11 @@ export class UsersService {
       data: { moduleVisibility },
     });
   }
+
+  async updateProductTourPreference(userId: string, enableProductTour: boolean): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { enableProductTour },
+    });
+  }
 }
