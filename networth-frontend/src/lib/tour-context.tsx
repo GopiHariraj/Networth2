@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from './auth-context';
 
 interface TourStep {
     targetId?: string; // Optional for welcome/centered steps
@@ -80,19 +81,22 @@ const TourContext = createContext<TourContextType | undefined>(undefined);
 
 export function TourProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
+    const { user, updateProductTourPreference } = useAuth();
     const [isTourVisible, setIsTourVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
 
     useEffect(() => {
-        // Check if tour was already finished or skipped
-        const tourStatus = localStorage.getItem('first_login_completed');
-        if (tourStatus !== 'true') {
+        // Check backend preference first, fallback to localStorage
+        const localStatus = localStorage.getItem('first_login_completed');
+        const shouldShowTour = user?.enableProductTour !== false && localStatus !== 'true';
+
+        if (shouldShowTour) {
             const timer = setTimeout(() => {
                 setIsTourVisible(true);
             }, 1000);
             return () => clearTimeout(timer);
         }
-    }, []);
+    }, [user?.enableProductTour]);
 
     const nextStep = () => {
         if (currentStep < TOUR_STEPS.length - 1) {
@@ -108,15 +112,31 @@ export function TourProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const skipTour = () => {
+    const skipTour = async () => {
         localStorage.setItem('first_login_completed', 'true');
         setIsTourVisible(false);
+        // Save to backend so it persists across browsers
+        if (updateProductTourPreference) {
+            try {
+                await updateProductTourPreference(false);
+            } catch (error) {
+                console.error('Failed to save tour preference:', error);
+            }
+        }
     };
 
-    const finishTour = () => {
+    const finishTour = async () => {
         localStorage.setItem('first_login_completed', 'true');
         setIsTourVisible(false);
         router.push('/');
+        // Save to backend so it persists across browsers
+        if (updateProductTourPreference) {
+            try {
+                await updateProductTourPreference(false);
+            } catch (error) {
+                console.error('Failed to save tour preference:', error);
+            }
+        }
     };
 
     const startTour = () => {

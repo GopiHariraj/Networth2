@@ -14,6 +14,7 @@ interface User {
     currency?: string;
     forceChangePassword?: boolean;
     moduleVisibility?: Record<string, boolean>;
+    enableProductTour?: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
     logout: () => void;
     updateUser: (user: Partial<User>) => void;
     updateModuleVisibility: (visibility: Record<string, boolean>) => Promise<void>;
+    updateProductTourPreference: (enabled: boolean) => Promise<void>;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
@@ -182,8 +184,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const updateProductTourPreference = async (enabled: boolean) => {
+        if (!user) return;
+        try {
+            await apiClient.put('/users/me/product-tour', { enableProductTour: enabled });
+            const updatedUser = { ...user, enableProductTour: enabled };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        } catch (error) {
+            console.error('Failed to update product tour preference', error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, updateUser, updateModuleVisibility, isAuthenticated, isLoading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, updateUser, updateModuleVisibility, updateProductTourPreference, isAuthenticated, isLoading }}>
             {isLoading ? (
                 <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                     <div className="text-center">
