@@ -113,28 +113,34 @@ export function TourProvider({ children }: { children: ReactNode }) {
     };
 
     const skipTour = async () => {
-        localStorage.setItem('first_login_completed', 'true');
+        // Hide tour immediately for instant feedback
         setIsTourVisible(false);
+        localStorage.setItem('first_login_completed', 'true');
+
         // Save to backend so it persists across browsers
         if (updateProductTourPreference) {
             try {
                 await updateProductTourPreference(false);
+                console.log('[Tour] Preference saved to backend: enableProductTour=false');
             } catch (error) {
-                console.error('Failed to save tour preference:', error);
+                console.error('[Tour] Failed to save tour preference:', error);
             }
         }
     };
 
     const finishTour = async () => {
-        localStorage.setItem('first_login_completed', 'true');
+        // Hide tour immediately
         setIsTourVisible(false);
+        localStorage.setItem('first_login_completed', 'true');
         router.push('/');
+
         // Save to backend so it persists across browsers
         if (updateProductTourPreference) {
             try {
                 await updateProductTourPreference(false);
+                console.log('[Tour] Preference saved to backend: enableProductTour=false');
             } catch (error) {
-                console.error('Failed to save tour preference:', error);
+                console.error('[Tour] Failed to save tour preference:', error);
             }
         }
     };
