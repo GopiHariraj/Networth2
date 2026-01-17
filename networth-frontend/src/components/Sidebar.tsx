@@ -127,15 +127,11 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                         <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800 group-hover:ring-blue-200 dark:group-hover:ring-blue-900 transition-all shrink-0">
                             {user?.name?.[0] || 'U'}
                         </div>
-                        {!isCollapsed && (
-                            <>
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{user?.name}</p>
-                                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                                </div>
-                                <span className="text-slate-400 text-xs">▼</span>
-                            </>
-                        )}
+                        <div className={`flex-1 min-w-0 ${isCollapsed ? 'max-md:block hidden' : ''}`}>
+                            <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{user?.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                        </div>
+                        {!isCollapsed && <span className="text-slate-400 text-xs">▼</span>}
                     </button>
 
                     {isMenuOpen && !isCollapsed && (
