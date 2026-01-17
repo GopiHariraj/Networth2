@@ -89,7 +89,7 @@ export default function Sidebar({ isOpen = true, isCollapsed = false, onToggleOp
                 </button>
 
                 {/* Navigation - Flex-1 to take available space and scroll */}
-                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0 custom-scrollbar">
                     {filteredItems.map((item) => (
                         <Link
                             key={item.path}
