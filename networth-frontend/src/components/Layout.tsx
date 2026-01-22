@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             } else if (width < BREAKPOINTS.TABLET) {
                 newScreenSize = 'tablet';
                 setIsMobile(false);
-                setIsSidebarCollapsed(true); // Auto-collapse on tablet
+                // setIsSidebarCollapsed(true); // Don't auto-collapse on tablet
             } else {
                 newScreenSize = 'desktop';
                 setIsMobile(false);
@@ -129,7 +129,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     {isAuthenticated && isMobile && (
                         <header className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 z-20 flex items-center gap-4">
                             <HamburgerButton onClick={toggleOpen} isOpen={isSidebarOpen} />
-                            <h1 className="font-bold text-lg text-slate-900 dark:text-white">E-Daily</h1>
+                            <h1 className="font-bold text-lg text-slate-900 dark:text-white truncate max-w-[200px]">{user?.name || 'Net Worth'}</h1>
                         </header>
                     )}
 

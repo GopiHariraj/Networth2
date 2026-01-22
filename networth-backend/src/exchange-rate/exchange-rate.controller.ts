@@ -16,13 +16,20 @@ export class ExchangeRateController {
 
     @Get()
     async getExchangeRates(@Request() req: any) {
-        const userCurrency = req.user.currency || 'AED';
         const targetCurrencies = ['USD', 'EUR', 'GBP', 'INR', 'SAR'];
 
-        return this.exchangeRateService.getRatesWithFallback(
+        console.log('[ExchangeRateController] getExchangeRates called');
+        console.log('[ExchangeRateController] User from request:', JSON.stringify(req.user));
+        const userCurrency = req.user.currency || 'AED';
+        console.log('[ExchangeRateController] Using userCurrency:', userCurrency);
+
+        const result = await this.exchangeRateService.getRatesWithFallback(
             userCurrency,
             targetCurrencies,
         );
+        console.log('[ExchangeRateController] Result success:', result.success);
+        console.log('[ExchangeRateController] Rate count:', Object.keys(result.rates || {}).length);
+        return result;
     }
 
     @Get('cached')
