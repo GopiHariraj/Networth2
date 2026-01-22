@@ -104,87 +104,93 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
                     {isCollapsed ? '→' : '←'}
                 </button>
 
-                {/* Navigation - Flex-1 to take available space and scroll */}
-                <nav id="sidebar-nav-container" className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0 custom-scrollbar">
-                    {filteredItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            id={`sidebar-link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                            href={item.path}
-                            prefetch={true}
-                            onClick={() => onToggleOpen?.()} // Close on mobile when link clicked
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative group ${pathname === item.path
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                                }`}
-                            title={isCollapsed ? item.name : ''}
+                {/* Main Scrollable Content Wrapper */}
+                <div className="flex-1 flex flex-col overflow-y-auto min-h-0 custom-scrollbar">
+                    {/* Navigation */}
+                    <nav id="sidebar-nav-container" className="p-4 space-y-1">
+                        {filteredItems.map((item) => (
+                            <Link
+                                key={item.path}
+                                id={`sidebar-link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                                href={item.path}
+                                prefetch={true}
+                                onClick={() => onToggleOpen?.()} // Close on mobile when link clicked
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors relative group ${pathname === item.path
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-medium'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                    }`}
+                                title={isCollapsed ? item.name : ''}
+                            >
+                                <span className={isCollapsed ? 'text-2xl' : 'text-xl'}>{item.icon}</span>
+                                {!isCollapsed && <span>{item.name}</span>}
+
+                                {/* Tooltip for collapsed state */}
+                                {isCollapsed && (
+                                    <div className="absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                        {item.name}
+                                    </div>
+                                )}
+                            </Link>
+                        ))}
+                    </nav>
+
+                    {/* Spacer to push profile to bottom when space permits */}
+                    <div className="flex-1" />
+
+                    {/* User Profile */}
+                    <div className={`shrink-0 p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 relative`}>
+                        <button
+                            id="sidebar-user-menu-trigger"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className={`flex items-center gap-3 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-left group ${isCollapsed ? 'justify-center' : ''}`}
+                            title={isCollapsed ? user?.name : ''}
                         >
-                            <span className={isCollapsed ? 'text-2xl' : 'text-xl'}>{item.icon}</span>
-                            {!isCollapsed && <span>{item.name}</span>}
+                            <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800 group-hover:ring-blue-200 dark:group-hover:ring-blue-900 transition-all shrink-0">
+                                {user?.name?.[0] || 'U'}
+                            </div>
+                            <div className={`flex-1 min-w-0 ${isCollapsed ? 'max-md:block hidden' : ''}`}>
+                                <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{user?.name}</p>
+                                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                            </div>
+                            {!isCollapsed && <span className="text-slate-400 text-xs">▼</span>}
+                        </button>
 
-                            {/* Tooltip for collapsed state */}
-                            {isCollapsed && (
-                                <div className="absolute left-full ml-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                    {item.name}
-                                </div>
-                            )}
-                        </Link>
-                    ))}
-                </nav>
-
-                {/* User Profile - Natural flow (flex item) at bottom */}
-                <div className={`shrink-0 p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 relative`}>
-                    <button
-                        id="sidebar-user-menu-trigger"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className={`flex items-center gap-3 w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-left group ${isCollapsed ? 'justify-center' : ''}`}
-                        title={isCollapsed ? user?.name : ''}
-                    >
-                        <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800 group-hover:ring-blue-200 dark:group-hover:ring-blue-900 transition-all shrink-0">
-                            {user?.name?.[0] || 'U'}
-                        </div>
-                        <div className={`flex-1 min-w-0 ${isCollapsed ? 'max-md:block hidden' : ''}`}>
-                            <p className="font-medium text-sm text-slate-900 dark:text-white truncate">{user?.name}</p>
-                            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                        </div>
-                        {!isCollapsed && <span className="text-slate-400 text-xs">▼</span>}
-                    </button>
-
-                    {isMenuOpen && !isCollapsed && (
-                        <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
-                            {/* @ts-ignore */}
-                            {user?.role === 'SUPER_ADMIN' && (
+                        {isMenuOpen && !isCollapsed && (
+                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                                {/* @ts-ignore */}
+                                {user?.role === 'SUPER_ADMIN' && (
+                                    <Link
+                                        href="/admin"
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
+                                    >
+                                        🛡️ Admin Dashboard
+                                    </Link>
+                                )}
                                 <Link
-                                    href="/admin"
+                                    href="/settings"
+                                    id="sidebar-settings-link"
                                     onClick={() => setIsMenuOpen(false)}
                                     className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
                                 >
-                                    🛡️ Admin Dashboard
+                                    ⚙️ Settings
                                 </Link>
-                            )}
-                            <Link
-                                href="/settings"
-                                id="sidebar-settings-link"
-                                onClick={() => setIsMenuOpen(false)}
-                                className="block px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700"
-                            >
-                                ⚙️ Settings
-                            </Link>
-                            <button
-                                onClick={logout}
-                                className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            >
-                                🚪 Sign Out
-                            </button>
-                        </div>
-                    )}
+                                <button
+                                    onClick={logout}
+                                    className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                >
+                                    🚪 Sign Out
+                                </button>
+                            </div>
+                        )}
 
-                    {/* Collapsed state tooltip */}
-                    {isCollapsed && (
-                        <div className="absolute left-full bottom-4 ml-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                            {user?.name}
-                        </div>
-                    )}
+                        {/* Collapsed state tooltip */}
+                        {isCollapsed && (
+                            <div className="absolute left-full bottom-4 ml-2 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                {user?.name}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </aside>
             {/* End Sidebar */}        </>
