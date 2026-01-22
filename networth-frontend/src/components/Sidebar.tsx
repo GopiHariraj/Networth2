@@ -31,23 +31,20 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
     const { isAuthenticated, logout, user } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
+    const [isShortHeight, setIsShortHeight] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // Aggressive route prefetching - preload all routes on mount
+    // Handle resize for height detection
     useEffect(() => {
-        if (isAuthenticated) {
-            // Prefetch all routes in background for instant navigation
-            const routes = ['/', '/cash', '/gold', '/stocks', '/bonds', '/property',
-                '/mutual-funds', '/loans', '/insurance', '/depreciating-assets',
-                '/ai-analysis', '/expenses', '/reports', '/goals', '/settings'];
+        const handleResize = () => {
+            setIsShortHeight(window.innerHeight < 600);
+        };
 
-            routes.forEach(route => {
-                router.prefetch(route);
-            });
-        }
-    }, [isAuthenticated, router]);
-
-    if (!isAuthenticated) return null;
+        // Initial check
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Map menu item names to visibility keys
     const visibilityKeyMap: Record<string, string> = {
@@ -69,6 +66,10 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
         return user.moduleVisibility[key] !== false; // Explicitly hidden if false
     }), [user?.moduleVisibility]);
 
+    // Render Logic:
+    // Short Screen: Full scrollable container (Profile moves with scroll)
+    // Tall Screen: Flex container with Fixed Profile (Nav-only scroll)
+
     return (
         <>
             {/* Backdrop for mobile */}
@@ -86,6 +87,7 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
                 fixed inset-y-0 left-0 flex flex-col z-50 transition-all duration-300
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
+                ${isShortHeight ? 'overflow-y-auto block' : 'overflow-hidden'} 
             `}>
                 {/* Logo */}
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3 shrink-0">
@@ -104,10 +106,15 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
                     {isCollapsed ? '→' : '←'}
                 </button>
 
-                {/* Main Scrollable Content Wrapper */}
-                <div className="flex-1 flex flex-col overflow-y-auto min-h-0 custom-scrollbar">
+                {/* Content Container */}
+                <div className={`
+                    ${isShortHeight ? '' : 'flex-1 flex flex-col overflow-hidden'}
+                `}>
                     {/* Navigation */}
-                    <nav id="sidebar-nav-container" className="p-4 space-y-1">
+                    <nav id="sidebar-nav-container" className={`
+                        p-4 space-y-1 
+                        ${isShortHeight ? '' : 'flex-1 overflow-y-auto custom-scrollbar'}
+                    `}>
                         {filteredItems.map((item) => (
                             <Link
                                 key={item.path}
@@ -134,11 +141,11 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
                         ))}
                     </nav>
 
-                    {/* Spacer to push profile to bottom when space permits */}
-                    <div className="flex-1" />
-
                     {/* User Profile */}
-                    <div className={`shrink-0 p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 relative sticky bottom-0 z-20`}>
+                    <div className={`
+                        shrink-0 p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 relative
+                        ${isShortHeight ? '' : 'mt-auto'}
+                    `}>
                         <button
                             id="sidebar-user-menu-trigger"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -156,7 +163,7 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
                         </button>
 
                         {isMenuOpen && !isCollapsed && (
-                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-20">
                                 {/* @ts-ignore */}
                                 {user?.role === 'SUPER_ADMIN' && (
                                     <Link
