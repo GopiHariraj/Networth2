@@ -49,14 +49,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             // Determine screen size category
             let newScreenSize: 'mobile' | 'tablet' | 'desktop';
-            if (width < BREAKPOINTS.MOBILE) {
+
+            // Treat Tablet (< 1024px) as Mobile for better layout (Drawer + Header)
+            if (width < BREAKPOINTS.TABLET) {
                 newScreenSize = 'mobile';
                 setIsMobile(true);
-                setIsSidebarOpen(false); // Auto-hide on mobile
-            } else if (width < BREAKPOINTS.TABLET) {
-                newScreenSize = 'tablet';
-                setIsMobile(false);
-                // setIsSidebarCollapsed(true); // Don't auto-collapse on tablet
+                setIsSidebarOpen(false); // Auto-hide on mobile/tablet
             } else {
                 newScreenSize = 'desktop';
                 setIsMobile(false);

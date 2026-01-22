@@ -83,7 +83,7 @@ function Sidebar({ isOpen = true, isCollapsed = false, onToggleOpen, onToggleCol
             <aside className={`
                 ${isCollapsed ? 'w-20' : 'w-64'}
                 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 
-                fixed inset-y-0 left-0 flex flex-col z-40 transition-all duration-300
+                fixed inset-y-0 left-0 flex flex-col z-50 transition-all duration-300
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0
             `}>
