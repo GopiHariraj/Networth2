@@ -18,3 +18,4 @@ out/
 .vercel
 .turbo
 *.tsbuildinfo
+deploy_payload.tar.gz

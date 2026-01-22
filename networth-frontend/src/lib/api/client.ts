@@ -71,7 +71,7 @@ const getApiUrl = () => {
     return 'http://localhost:3001/api';
 };
 
-const API_URL = getApiUrl();
+export const API_URL = getApiUrl();
 
 export const apiClient = axios.create({
     baseURL: API_URL,
@@ -144,6 +144,7 @@ apiClient.interceptors.response.use(
 
 export const authApi = {
     login: (credentials: any) => apiClient.post('/auth/login', credentials),
+    signup: (data: any) => apiClient.post('/auth/signup', data),
 };
 
 export const usersApi = {

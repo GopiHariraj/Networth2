@@ -206,4 +206,81 @@ export class AuthService {
       },
     };
   }
+  async validateGoogleUser(googleUser: any) {
+    const { email, firstName, lastName, picture, accessToken, googleId } = googleUser;
+
+    // 1. Check if user exists with this email
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      // 2. Link Google ID if not already linked
+      if (!user.googleId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { googleId, avatarUrl: picture },
+        });
+      }
+      return user;
+    }
+
+    // 3. Create new user if not exists
+    user = await this.prisma.user.create({
+      data: {
+        email,
+        firstName,
+        lastName,
+        googleId,
+        avatarUrl: picture,
+        role: 'USER', // Default role
+        isActive: true,
+        // No password for Google users
+      },
+    });
+
+    return user;
+  }
+
+  async signup(signupDto: any) {
+    const { email, password, firstName, lastName } = signupDto;
+
+    // Check if user exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email already in use');
+    }
+
+    // Hash password
+    const hash = await argon2.hash(password);
+
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        passwordHash: hash,
+        firstName,
+        lastName,
+        role: 'USER',
+      },
+    });
+
+    // Generate token
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.firstName,
+        role: user.role,
+        currency: user.currency,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  }
 }
+
