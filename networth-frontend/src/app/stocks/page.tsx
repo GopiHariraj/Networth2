@@ -61,7 +61,7 @@ export default function StocksPage() {
 
     useEffect(() => {
         if (data.assets.stocks.items) {
-            setStocks(data.assets.stocks.items.map((s: any) => ({
+            const stocksData = data.assets.stocks.items.map((s: any) => ({
                 id: s.id,
                 symbol: s.symbol || '',
                 name: s.name || '',
@@ -71,7 +71,10 @@ export default function StocksPage() {
                 currentPrice: parseFloat(s.currentPrice) || 0,
                 currency: s.currency || 'AED',
                 transactions: s.transactions || []
-            })));
+            }));
+            console.log('[StocksPage] Loaded stocks:', stocksData);
+            console.log('[StocksPage] Stock currencies:', stocksData.map(s => `${s.symbol}: ${s.currency}`));
+            setStocks(stocksData);
             setLoading(false);
         }
     }, [data.assets.stocks.items]);
@@ -189,6 +192,10 @@ export default function StocksPage() {
     const totalGainLoss = totalMarketValue - totalCostBasis;
     const gainPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
 
+    console.log('[StocksPage] User selected currency:', currency.code);
+    console.log('[StocksPage] Total market value (AED):', totalMarketValue);
+    console.log('[StocksPage] Converting to display currency:', convert(totalMarketValue, 'AED'));
+
     const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
     return (
@@ -282,6 +289,8 @@ export default function StocksPage() {
                                             // Convert prices to user's selected currency FIRST
                                             const convertedAvgPrice = convert(s.avgPrice, s.currency);
                                             const convertedCurrentPrice = convert(s.currentPrice, s.currency);
+
+                                            console.log(`[StocksPage] ${s.symbol}: Original price ${s.currentPrice} ${s.currency} -> Converted ${convertedCurrentPrice} ${currency.code}`);
 
                                             // Then calculate market value and cost basis in converted currency
                                             const mv = s.quantity * convertedCurrentPrice;
@@ -471,6 +480,169 @@ export default function StocksPage() {
                                     {isSubmitting ? 'Saving...' : 'Add Stock Asset'}
                                 </button>
                             </form>
+                        </div>
+                    )}
+
+                    {activeTab === 'Analytics' && (
+                        <div className="space-y-6">
+                            {stocks.length === 0 ? (
+                                <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+                                    <p className="text-slate-400 text-lg">📊 No stocks data to analyze yet. Add some stocks to see analytics!</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Portfolio Allocation Pie Chart */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">📊 Portfolio Allocation by Stock</h3>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <ResponsiveContainer width="100%" height={300}>
+                                                <PieChart>
+                                                    <Pie
+                                                        data={stocks.map(s => ({
+                                                            name: s.symbol,
+                                                            value: convertRaw(s.quantity * s.currentPrice, s.currency, currency.code)
+                                                        }))}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        labelLine={false}
+                                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                                                        outerRadius={100}
+                                                        fill="#8884d8"
+                                                        dataKey="value"
+                                                    >
+                                                        {stocks.map((_, index) => (
+                                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                            <div className="space-y-2">
+                                                {stocks.map((s, idx) => {
+                                                    const value = convertRaw(s.quantity * s.currentPrice, s.currency, currency.code);
+                                                    const percentage = totalMarketValue > 0 ? (convertRaw(s.quantity * s.currentPrice, s.currency, 'AED') / totalMarketValue) * 100 : 0;
+                                                    return (
+                                                        <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-4 h-4 rounded" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
+                                                                <div>
+                                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">{s.symbol}</div>
+                                                                    <div className="text-xs text-slate-500">{s.name}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                                                                    {currency.symbol} {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                </div>
+                                                                <div className="text-xs text-slate-500">{percentage.toFixed(1)}%</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Top Performers & Losers */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Top Gainers */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                                🚀 Top Performers
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {stocks
+                                                    .map(s => {
+                                                        const convertedAvgPrice = convert(s.avgPrice, s.currency);
+                                                        const convertedCurrentPrice = convert(s.currentPrice, s.currency);
+                                                        const mv = s.quantity * convertedCurrentPrice;
+                                                        const cb = s.quantity * convertedAvgPrice;
+                                                        const gl = mv - cb;
+                                                        const glp = cb > 0 ? (gl / cb) * 100 : 0;
+                                                        return { ...s, glp, gl, convertedCurrentPrice };
+                                                    })
+                                                    .sort((a, b) => b.glp - a.glp)
+                                                    .slice(0, 3)
+                                                    .map(s => (
+                                                        <div key={s.id} className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                                            <div>
+                                                                <div className="font-bold text-slate-900 dark:text-white">{s.symbol}</div>
+                                                                <div className="text-xs text-slate-500">{currency.symbol} {s.convertedCurrentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-sm font-bold text-emerald-600">+{s.glp.toFixed(2)}%</div>
+                                                                <div className="text-xs text-emerald-500">{currency.symbol} {s.gl.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Top Losers */}
+                                        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                                                📉 Bottom Performers
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {stocks
+                                                    .map(s => {
+                                                        const convertedAvgPrice = convert(s.avgPrice, s.currency);
+                                                        const convertedCurrentPrice = convert(s.currentPrice, s.currency);
+                                                        const mv = s.quantity * convertedCurrentPrice;
+                                                        const cb = s.quantity * convertedAvgPrice;
+                                                        const gl = mv - cb;
+                                                        const glp = cb > 0 ? (gl / cb) * 100 : 0;
+                                                        return { ...s, glp, gl, convertedCurrentPrice };
+                                                    })
+                                                    .sort((a, b) => a.glp - b.glp)
+                                                    .slice(0, 3)
+                                                    .map(s => (
+                                                        <div key={s.id} className="flex items-center justify-between p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-200 dark:border-rose-800">
+                                                            <div>
+                                                                <div className="font-bold text-slate-900 dark:text-white">{s.symbol}</div>
+                                                                <div className="text-xs text-slate-500">{currency.symbol} {s.convertedCurrentPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-sm font-bold text-rose-600">{s.glp.toFixed(2)}%</div>
+                                                                <div className="text-xs text-rose-500">{currency.symbol} {s.gl.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Exchange Allocation */}
+                                    <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">🌍 Allocation by Exchange</h3>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={
+                                                Object.entries(
+                                                    stocks.reduce((acc, s) => {
+                                                        const exchange = s.exchange || 'Unknown';
+                                                        const value = convertRaw(s.quantity * s.currentPrice, s.currency, currency.code);
+                                                        acc[exchange] = (acc[exchange] || 0) + value;
+                                                        return acc;
+                                                    }, {} as Record<string, number>)
+                                                ).map(([exchange, value]) => ({ exchange, value }))
+                                            }>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="exchange" />
+                                                <YAxis />
+                                                <Tooltip formatter={(value: number) => `${currency.symbol} ${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} />
+                                                <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]}>
+                                                    {Object.keys(stocks.reduce((acc, s) => {
+                                                        acc[s.exchange || 'Unknown'] = true;
+                                                        return acc;
+                                                    }, {} as Record<string, boolean>)).map((_, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
