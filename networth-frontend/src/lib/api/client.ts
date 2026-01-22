@@ -59,7 +59,10 @@ export const apiCache = {
 
 // Dynamically determine API URL based on current hostname
 const getApiUrl = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+    // If env var is set, use it unless it's localhost and we are not on localhost
+    if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
     if (typeof window !== 'undefined') {
         const { hostname, port, origin } = window.location;
         if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '3000') {
