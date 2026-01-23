@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { transactionsApi } from '../lib/api/client';
 import Link from 'next/link';
 import { useCurrency } from '../lib/currency-context';
@@ -25,8 +25,23 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
         date: new Date().toISOString().split('T')[0],
         merchant: '',
         accountId: '',
-        creditCardId: ''
+        creditCardId: '',
+        categoryId: ''
     });
+    const [categories, setCategories] = useState<any[]>([]);
+
+    useEffect(() => {
+        loadCategories();
+    }, []);
+
+    const loadCategories = async () => {
+        try {
+            const res = await financialDataApi.expenseCategories.getAll();
+            setCategories(res.data);
+        } catch (error) {
+            console.error('Failed to load categories', error);
+        }
+    };
 
     const handleAnalyzeSMS = async () => {
         if (!smsText.trim()) return;
@@ -80,7 +95,8 @@ export default function TransactionUpload({ onTransactionAdded }: { onTransactio
                 date: new Date().toISOString().split('T')[0],
                 merchant: '',
                 accountId: '',
-                creditCardId: ''
+                creditCardId: '',
+                categoryId: ''
             });
         } catch (error) {
             console.error(error);
@@ -184,7 +200,7 @@ Examples:
                             onChange={(e) => setSmsText(e.target.value)}
                         />
                         <div className="flex justify-between items-center mt-4">
-                            <p className="text-xs text-slate-500 font-medium">✨ Gemini AI extracts details automatically.</p>
+                            <p className="text-xs text-slate-500 font-medium">✨ Powered by OpenAI</p>
                             <button
                                 onClick={handleAnalyzeSMS}
                                 disabled={loading || !smsText}
@@ -264,6 +280,19 @@ Examples:
                                 onChange={(e) => setManualForm({ ...manualForm, description: e.target.value })}
                                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             />
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Category</label>
+                            <select
+                                value={manualForm.categoryId}
+                                onChange={(e) => setManualForm({ ...manualForm, categoryId: e.target.value })}
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="">General</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="col-span-2 sm:col-span-1">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Linked Account</label>

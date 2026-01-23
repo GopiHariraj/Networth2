@@ -47,7 +47,12 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: any) {
     const user = await this.authService.validateGoogleUser(req.user);
-    const payload = { email: user.email, sub: user.id, role: user.role };
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: user.role,
+      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'User'
+    };
     const token = this.authService['jwtService'].sign(payload); // Accessing private jwtService or expose it public/method
 
     // Redirect to frontend with token

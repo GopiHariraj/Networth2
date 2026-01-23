@@ -63,6 +63,10 @@ const getApiUrl = () => {
     if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
+    // Server-side internal Docker URL
+    if (typeof window === 'undefined' && process.env.INTERNAL_API_URL) {
+        return process.env.INTERNAL_API_URL;
+    }
     if (typeof window !== 'undefined') {
         const { hostname, port, origin } = window.location;
         if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '3000') {

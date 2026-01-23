@@ -20,7 +20,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     token: string | null;
-    login: (token: string, user: User) => void;
+    login: (token: string, user: User, skipRedirect?: boolean) => void;
     logout: () => void;
     updateUser: (user: Partial<User>) => void;
     updateModuleVisibility: (visibility: Record<string, boolean>) => Promise<void>;
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('focus', handleFocus);
     }, [checkTokenAuth]);
 
-    const login = (newToken: string, userData: User) => {
+    const login = (newToken: string, userData: User, skipRedirect = false) => {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(userData));
 
@@ -123,6 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Dispatch custom event for context providers to react
         window.dispatchEvent(new CustomEvent('userLogin', { detail: { userId: userData.id } }));
+
+        if (skipRedirect) return;
 
         if (userData.forceChangePassword) {
             router.push('/reset-password');

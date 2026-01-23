@@ -36,7 +36,11 @@ function CallbackContent() {
                     // other fields might be missing but context usually fetches 'me' or we rely on token payload
                 };
 
-                login(token, user);
+                // Pass true to skip default router.push and force hard redirect below
+                login(token, user, true);
+
+                // Force hard reload to clear any router/state issues
+                window.location.href = '/';
             } catch (e) {
                 console.error('Failed to process login', e);
                 router.push('/login?error=auth_failed');

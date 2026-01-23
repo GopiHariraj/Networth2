@@ -384,6 +384,7 @@ model Expense {
   source        String   @default("manual") // manual, gemini_text, gemini_receipt
   receiptUrl    String?
   confidence    Decimal? @db.Decimal(3, 2) // AI confidence score 0.00-1.00
+  transactionId String?  @unique // Link to the source Transaction
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -248,14 +248,18 @@ export function NetWorthProvider({ children }: { children: ReactNode }) {
             currentValue: parseFloat(item.currentValue),
             depreciationRate: parseFloat(item.rate || 0),
             purchaseDate: item.purchaseDate,
+            purchaseCurrency: item.purchaseCurrency || 'AED',
             notes: item.notes,
             depreciationMethod: item.depreciationMethod,
             usefulLife: item.usefulLife,
             isDepreciationEnabled: item.isDepreciationEnabled
         }));
-        const total = items.reduce((sum, item) => sum + (item.currentValue || 0), 0);
+        const total = items.reduce((sum, item) => {
+            const rawAEDValue = convertRaw(item.currentValue, item.purchaseCurrency, 'AED');
+            return sum + (rawAEDValue || 0);
+        }, 0);
         return { items, totalValue: total };
-    }, [depreciatingAssetItems]);
+    }, [depreciatingAssetItems, convertRaw]);
 
     const creditCardData = React.useMemo(() => {
         const items = creditCardItems.map((item: any) => ({

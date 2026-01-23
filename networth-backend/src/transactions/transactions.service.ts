@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { GeminiService } from '../common/openai/gemini.service';
+import { OpenAIService } from '../openai/openai.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GoldAssetsService } from '../gold-assets/gold-assets.service';
 import { StockAssetsService } from '../stock-assets/stock-assets.service';
@@ -9,7 +9,7 @@ import { StockAssetsService } from '../stock-assets/stock-assets.service';
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
-    private geminiService: GeminiService,
+    private openAIService: OpenAIService,
     @Inject(forwardRef(() => GoldAssetsService))
     private goldAssetsService: GoldAssetsService,
     @Inject(forwardRef(() => StockAssetsService))
@@ -56,24 +56,34 @@ export class TransactionsService {
               data: { usedAmount: { increment: amount } },
             });
           }
-
-          // Synchronize with Expense table
-          await tx.expense.create({
-            data: {
-              userId,
-              amount: dto.amount,
-              notes: dto.description,
-              date: dto.date ? new Date(dto.date) : new Date(),
-              merchant: dto.merchant,
-              category: 'General', // Default or fetch from categoryId
-              paymentMethod: dto.creditCardId ? 'credit_card' : (dto.accountId ? 'debit_card' : 'cash'),
-              accountId: dto.accountId || null,
-              creditCardId: dto.creditCardId || null,
-              source: 'manual',
-              periodTag: 'monthly',
-            } as any,
-          });
         }
+      }
+
+      // Always synchronize with Expense table for EXPENSE type
+      if (dto.type === 'EXPENSE') {
+        // Get category name if ID is provided
+        let categoryName = 'General';
+        if (dto.categoryId) {
+          const cat = await tx.category.findUnique({ where: { id: dto.categoryId } });
+          if (cat) categoryName = cat.name;
+        }
+
+        await tx.expense.create({
+          data: {
+            userId,
+            amount: dto.amount,
+            notes: dto.description,
+            date: dto.date ? new Date(dto.date) : new Date(),
+            merchant: dto.merchant,
+            category: categoryName,
+            paymentMethod: dto.creditCardId ? 'credit_card' : (dto.accountId ? 'debit_card' : 'cash'),
+            accountId: dto.accountId || null,
+            creditCardId: dto.creditCardId || null,
+            source: 'manual',
+            periodTag: 'monthly',
+            transactionId: transaction.id, // Explicit Link
+          } as any,
+        });
       }
 
       return transaction;
@@ -81,7 +91,7 @@ export class TransactionsService {
   }
 
   async parseAndCreate(userId: string, smsText: string) {
-    const parsed = await this.geminiService.parseSMSTransaction(smsText);
+    const parsed = await this.openAIService.parseSMS(smsText);
 
     // Route based on transaction type
     switch (parsed.type) {
@@ -394,7 +404,7 @@ export class TransactionsService {
 
   async analyzeReceipt(userId: string, imageBase64: string) {
     try {
-      const parsed = await this.geminiService.analyzeReceiptImage(imageBase64);
+      const parsed = await this.openAIService.analyzeReceipt(imageBase64);
 
       // Create expense transaction from receipt data
       const expense = await this.prisma.expense.create({
@@ -466,15 +476,10 @@ export class TransactionsService {
         },
       });
 
-      // Update expense record if exists
+      // Update expense record if exists (using transactionId link)
       if (existing.type === 'EXPENSE') {
         const expenseRecord = await tx.expense.findFirst({
-          where: {
-            userId,
-            date: existing.date,
-            amount: existing.amount,
-            merchant: existing.merchant || undefined,
-          },
+          where: { transactionId: id } // Robust lookup
         });
 
         if (expenseRecord) {
@@ -526,14 +531,24 @@ export class TransactionsService {
 
       // Delete associated expense record if exists
       if (transaction.type === 'EXPENSE') {
-        await tx.expense.deleteMany({
-          where: {
-            userId,
-            date: transaction.date,
-            amount: transaction.amount,
-            merchant: transaction.merchant || undefined,
-          },
+        // Try finding by transactionId first (new way)
+        const linkedExpense = await tx.expense.findUnique({
+          where: { transactionId: id }
         });
+
+        if (linkedExpense) {
+          await tx.expense.delete({ where: { id: linkedExpense.id } });
+        } else {
+          // Fallback for old records without transactionId
+          await tx.expense.deleteMany({
+            where: {
+              userId,
+              date: transaction.date,
+              amount: transaction.amount,
+              merchant: transaction.merchant || undefined,
+            },
+          });
+        }
       }
 
       // Delete the transaction
