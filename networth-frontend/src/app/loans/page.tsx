@@ -6,8 +6,9 @@ import { useNetWorth } from '../../lib/networth-context';
 import { financialDataApi } from '../../lib/api/financial-data';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-interface HousingLoan {
+interface LoanItem {
     id: string;
+    loanType: string;
     lenderName: string;
     linkedProperty: string;
     originalAmount: number;
@@ -39,7 +40,7 @@ const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981'
 export default function LoansPage() {
     const { currency, convert } = useCurrency();
     const { data, refreshNetWorth } = useNetWorth();
-    const [loans, setLoans] = useState<HousingLoan[]>([]);
+    const [loans, setLoans] = useState<LoanItem[]>([]);
     const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
     const [activeTab, setActiveTab] = useState<'loans' | 'cards' | 'insights'>('loans');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,8 +48,9 @@ export default function LoansPage() {
     const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
     const [loanForm, setLoanForm] = useState({
+        loanType: 'HOUSE',
         lenderName: '',
-        linkedProperty: '',
+        linkedProperty: '', // Kept for backend compatibility optional
         originalAmount: '',
         outstandingBalance: '',
         interestRate: '',
@@ -76,6 +78,7 @@ export default function LoansPage() {
         if (data.liabilities.loans.items) {
             setLoans(data.liabilities.loans.items.map((l: any) => ({
                 id: l.id,
+                loanType: l.loanType || 'HOUSE',
                 lenderName: l.lenderName,
                 linkedProperty: l.linkedProperty,
                 originalAmount: parseFloat(l.originalAmount) || 0,
@@ -105,9 +108,10 @@ export default function LoansPage() {
         }
     }, [data.liabilities.loans.items, data.liabilities.creditCards.items]);
 
-    const handleEditLoan = (loan: HousingLoan) => {
+    const handleEditLoan = (loan: LoanItem) => {
         setEditingLoanId(loan.id);
         setLoanForm({
+            loanType: loan.loanType,
             lenderName: loan.lenderName,
             linkedProperty: loan.linkedProperty,
             originalAmount: loan.originalAmount.toString(),
@@ -143,7 +147,7 @@ export default function LoansPage() {
     const handleCancelEdit = () => {
         setEditingLoanId(null);
         setEditingCardId(null);
-        setLoanForm({ lenderName: '', linkedProperty: '', originalAmount: '', outstandingBalance: '', interestRate: '', emiAmount: '', emiDueDate: '1', loanStartDate: '', loanEndDate: '', notes: '' });
+        setLoanForm({ loanType: 'HOUSE', lenderName: '', linkedProperty: '', originalAmount: '', outstandingBalance: '', interestRate: '', emiAmount: '', emiDueDate: '1', loanStartDate: '', loanEndDate: '', notes: '' });
         setCardForm({ cardName: '', bankName: '', totalLimit: '', usedAmount: '', minimumDue: '', dueDate: '1', statementDate: '1', monthlyInstallment: '', lastPaymentAmount: '', lastPaymentDate: '' });
     };
 
@@ -152,7 +156,7 @@ export default function LoansPage() {
         setIsSubmitting(true);
         try {
             const loanData = {
-                loanType: loanForm.linkedProperty || 'HOME',
+                loanType: loanForm.loanType,
                 lenderName: loanForm.lenderName,
                 principal: parseFloat(loanForm.originalAmount),
                 interestRate: parseFloat(loanForm.interestRate),
@@ -172,7 +176,7 @@ export default function LoansPage() {
                 alert('🚀 Loan added successfully!');
             }
             await refreshNetWorth();
-            setLoanForm({ lenderName: '', linkedProperty: '', originalAmount: '', outstandingBalance: '', interestRate: '', emiAmount: '', emiDueDate: '1', loanStartDate: '', loanEndDate: '', notes: '' });
+            setLoanForm({ loanType: 'HOUSE', lenderName: '', linkedProperty: '', originalAmount: '', outstandingBalance: '', interestRate: '', emiAmount: '', emiDueDate: '1', loanStartDate: '', loanEndDate: '', notes: '' });
         } catch (error) {
             alert('Failed to save loan. Please try again.');
         } finally {
@@ -245,6 +249,17 @@ export default function LoansPage() {
         used: convert(c.usedAmount, 'AED'),
         limit: convert(c.totalLimit, 'AED')
     })), [creditCards, convert]);
+
+    const getLoanIcon = (type: string) => {
+        switch (type) {
+            case 'HOUSE': return '🏠';
+            case 'CAR': return '🚗';
+            case 'PERSONAL': return '👤';
+            case 'JEWEL': return '💎';
+            case 'OTHER': return '📝';
+            default: return '🏦';
+        }
+    };
 
     const renderInsights = () => (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -341,7 +356,7 @@ export default function LoansPage() {
                                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
                                     }`}
                             >
-                                {tab === 'loans' ? '🏠 Housing Loans' : tab === 'cards' ? '💳 Credit Cards' : '📊 Insights'}
+                                {tab === 'loans' ? '🏦 Loans' : tab === 'cards' ? '💳 Credit Cards' : '📊 Insights'}
                             </button>
                         ))}
                     </div>
@@ -354,7 +369,7 @@ export default function LoansPage() {
                         <div className="mt-2 text-xs text-red-100">Loans + Cards</div>
                     </div>
                     <div className="bg-white dark:bg-slate-800 p-7 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <div className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">🏠 Loans Outstanding</div>
+                        <div className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">🏦 Loans Outstanding</div>
                         <div className="text-3xl md:text-4xl font-black text-red-600 dark:text-red-500">{currency.symbol} {getTotalLoanBalance().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         <div className="mt-2 text-xs text-slate-400">{loans.length} active {loans.length === 1 ? 'loan' : 'loans'}</div>
                     </div>
@@ -375,8 +390,22 @@ export default function LoansPage() {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="lg:col-span-1">
                                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 sticky top-8">
-                                    <h3 className="font-bold text-xl mb-6">{editingLoanId ? '✏️ Edit Housing Loan' : '➕ Add Housing Loan'}</h3>
+                                    <h3 className="font-bold text-xl mb-6">{editingLoanId ? '✏️ Edit Loan' : '➕ Add Loan'}</h3>
                                     <form onSubmit={handleAddLoan} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-500 mb-1">Loan Type</label>
+                                            <select
+                                                value={loanForm.loanType}
+                                                onChange={e => setLoanForm({ ...loanForm, loanType: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                            >
+                                                <option value="HOUSE">🏠 House Loan</option>
+                                                <option value="CAR">🚗 Car Loan</option>
+                                                <option value="PERSONAL">👤 Personal Loan</option>
+                                                <option value="JEWEL">💎 Jewel Loan</option>
+                                                <option value="OTHER">📝 Other Loan</option>
+                                            </select>
+                                        </div>
                                         <div>
                                             <label className="block text-sm font-medium text-slate-500 mb-1">Lender Name</label>
                                             <input placeholder="e.g., ADCB Bank" value={loanForm.lenderName} onChange={e => setLoanForm({ ...loanForm, lenderName: e.target.value })} required className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-red-500 outline-none transition-all" />
@@ -435,14 +464,14 @@ export default function LoansPage() {
                             <div className="lg:col-span-2 space-y-4">
                                 {loans.length === 0 ? (
                                     <div className="bg-white dark:bg-slate-800 p-12 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-500">
-                                        No active housing loans found.
+                                        No active loans found.
                                     </div>
                                 ) : (
                                     loans.map(l => (
                                         <div key={l.id} className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 flex justify-between items-center group hover:shadow-lg transition-all">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
-                                                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center text-xl">🏠</div>
+                                                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center text-xl">{getLoanIcon(l.loanType)}</div>
                                                     <div className="font-black text-2xl tracking-tight">{l.lenderName}</div>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-8 mt-6">
